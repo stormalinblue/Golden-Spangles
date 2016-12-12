@@ -92,7 +92,10 @@ misc_list = [{'water':'water'}, {'paper':'Paper Pellets'}, {'LApaper':'Lead Acet
              {'MSpaper':'Moist Starch Paper'}, {'MSIpaper':'Moist Starch Iodide Paper'}, {'MBLpaper':'Moist Blue Litmus Paper'}]
 # Add more reagents specific to certain tests for new cations/anions
 reag_list = [{'NH4OH':'Ammonium hydroxide'}, {'lime':'Lime water / Ca(OH)2'}, {'H2S':'Hydrogen Sulphide'},
-             {'NH4Cl':'Ammonium chloride'}, {'(NH4)2CO3':'Ammonium carbonate'}, {'Na2HPO4':'Disodium hydrogen phosphate'}]
+             {'NH4Cl':'Ammonium chloride'}, {'(NH4)2CO3':'Ammonium carbonate'}, {'Na2HPO4':'Disodium hydrogen phosphate'},
+             {'NaOH':'Sodium Hydroxide'}, {'ness':'Nessler\'s reagent'}, {'BaCl2':'Barium chloride'},
+             {'(CH3COO)2Pb':'Lead acetate'}, {'CH3COONH4':'Ammonium acetate'}, {'molybdate':'Ammonium molybdate / (NH4)2MoO4'},
+             {'magnesia':'Magnesia mixture'}]
 
 acids = [acid.keys()[0] for acid in acids_list]
 acids.sort()
@@ -238,6 +241,7 @@ def heat(code):
     else:
         print 'Test Tube %d is empty. It can\'t be heated'%(index+1)
     prelim_tests_anion()
+    phosphate_confirm_tests()
     
 def pass_gas(gas, index):  #Keep updating for confirmatory tests
     global tubes, currenttubeindex
@@ -258,14 +262,16 @@ def introduce(chemical, index = None):
         print '\nAcidified dichromate paper turns green'
     elif tubes[index]['gas'] == 'HCl' and chemical == 'NH4OH':
         print '\nDense white fumes formed'
-    elif tubes[index]['gas'] == 'Br' and chemical == 'MSPaper':
+    elif tubes[index]['gas'] == 'Br2' and chemical == 'MSPaper':
         print '\nThe moist starch paper turns yellow'
-    elif tubes[index]['gas'] == 'Br' and chemical == 'MSIpaper':
+    elif tubes[index]['gas'] == 'Br2' and chemical == 'MSIpaper':
         print '\nThe moist starch iodide paper turns blue'
-    elif tubes[index]['gas'] == 'I' and chemical == 'MSpaper':
+    elif tubes[index]['gas'] == 'I2' and chemical == 'MSpaper':
         print '\nThe moist starch paper turns blue black'
     elif tubes[index]['gas'] == 'CH3COO' and chemical == 'MBLpaper':
         print '\nMoist blue litmus paper turns red'
+    elif tubes[index]['gas'] == 'NH3' and chemical == 'conc_HCl':
+        print '\nDense white fumes formed'
     currenttubeindex = index
 
 def add(chemical, index = None):
@@ -285,7 +291,10 @@ def add(chemical, index = None):
         currenttubeindex = index
     solubility_test()
     prelim_tests_anion()
+    phosphate_confirm_tests()
+    sulphate_confirm_tests()
     prelim_tests_cation()
+    group0_confirm_tests()
 
 #FUNCTIONS FOR TESTS
 #These functions should be placed in the add() function (except for flame test, there's a keyword for that)
@@ -347,6 +356,43 @@ def prelim_tests_anion():
                 print '\nSlight brown fumes evolved'
                 tubes[i]['gas'] = 'NO'
 
+def sulphate_confirm_tests():
+    global tubes
+    i = currenttubeindex
+    if salt[1]['formula'] != 'SO4': return
+    if tubes[i]['contents'] == ['WE', 'BaCl2'] or tubes[i]['contents'] == ['SE', 'BaCl2'] or \
+       tubes[i]['contents'] == ['WE', 'dil_HCl', 'BaCl2'] or tubes[i]['contents'] == ['SE', 'dil_HCl', 'BaCl2']:
+        print '\nWhite precipitate formed'
+        tubes[i]['colour'] = 'white'
+    elif tubes[i]['contents'] == ['WE', '(CH3COO)2Pb'] or tubes[i]['contents'] == ['SE', '(CH3COO)2Pb'] or \
+         tubes[i]['contents'] == ['WE', 'CH3COOH', '(CH3COO)2Pb'] or tubes[i]['contents'] == ['SE', 'CH3COOH', '(CH3COO)2Pb']:
+        print '\nWhite precipitate formed'
+        tubes[i]['colour'] = 'white'
+    elif (tubes[i]['contents'] == ['WE', '(CH3COO)2Pb', 'CH3COONH4'] or tubes[i]['contents'] == ['SE', '(CH3COO)2Pb', 'CH3COONH4'] or \
+         tubes[i]['contents'] == ['WE', 'CH3COOH', '(CH3COO)2Pb', 'CH3COONH4'] or \
+         tubes[i]['contents'] == ['SE', 'CH3COOH', '(CH3COO)2Pb', 'CH3COONH4']) and tubes[i]['colour'] == 'white':
+        print '\nWhite precipitate dissolves'
+        tubes[i]['colour'] = None
+
+phosphate_molybdate_test_heated_flag = False
+
+def phosphate_confirm_tests():
+    global tubes, phosphate_molybdate_test_heated_flag
+    i = currenttubeindex
+    if salt[1]['formula'] != 'PO4': return
+    if tubes[i]['contents'] == ['WE', 'magnesia'] or tubes[i]['contents'] == ['SE', 'magnesia'] or \
+       tubes[i]['contents'] == ['WE', 'dil_HCl', 'magnesia'] or tubes[i]['contents'] == ['SE', 'dil_HCl', 'magnesia']:
+        print '\nWhite precipitate formed'
+        tubes[i]['colour'] = 'white'
+    if tubes[i]['contents'][0] in ('salt', 'WE', 'SE') and ((len(tubes[i]['contents']) == 2 and tubes[i]['contents'][1] == 'conc_HNO3') or \
+         (len(tubes[i]['contents']) == 3 and tubes[i]['contents'][1] in acids and tubes[i]['contents'][2] == 'conc_HNO3')) and \
+         tubes[i]['heated'] == 2:
+        phosphate_molybdate_test_heated_flag = True
+    elif phosphate_molybdate_test_heated_flag and tubes[i]['contents'][-1] == 'molybdate':
+        print '\nCanary yellow precipitate formed'
+        tubes[i]['colour'] == 'Canary yellow'
+        
+
 def prelim_tests_cation():
     global tubes
     i = currenttubeindex
@@ -369,6 +415,16 @@ def prelim_tests_cation():
         print '%s precipiate formed'%(colour)
         tubes[i]['colour'] = colour
 
+def group0_confirm_tests():
+    global tubes
+    if salt[0]['formula'] != 'NH4': return
+    i = currenttubeindex
+    if tubes[i]['contents'] == ['OS', 'NaOH']:  
+        print '\nColourless gas with pungent smell evolved.'
+        tubes[i]['gas'] = 'NH3'
+    elif tubes[i]['contents'] == ['OS', 'NaOH', 'ness']:
+        print '\nRed-brown precipitate formed'
+        tubes[i]['colour'] = 'Red-brown'
 
             
 #Actual loop for taking inputs-
@@ -392,8 +448,8 @@ acetate = {'name':'acetate', 'type':'anion', 'formula':'CH3COO', 'valency':1, 'o
 nitrate = {'name':'nitrate', 'type':'anion', 'formula':'NO3', 'valency':1, 'odour':None}
 sulphate = {'name':'sulphate', 'type':'anion', 'formula':'SO4', 'valency':2, 'odour':None}
 phosphate = {'name':'phosphate', 'type':'anion', 'formula':'PO4', 'valency':3, 'odour':None}
-anions = [sulphide, carbonate, nitrite, sulphite, chloride, bromide, iodide, acetate, nitrate, sulphate, phosphate]
-
+#anions = [sulphide, carbonate, nitrite, sulphite, chloride, bromide, iodide, acetate, nitrate, sulphate, phosphate]
+anions = [phosphate]
 #cations
 ammonium = {'name':'Ammonium', 'type':'cation', 'formula':'NH4', 'valency':1, 'odour':'Ammoniacal', 'flame':None, 'colour':None} 
 lead = {'name':'Lead', 'type':'cation', 'formula':'Pb', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
