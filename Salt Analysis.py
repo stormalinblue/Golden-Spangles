@@ -28,7 +28,7 @@ All functions:
 
 'add <chemical name> [to <tube>]' :- adds the chemical in the specified test tube. Test tube not specified, then adds to last used test tube. Can add contents of one test tube into the other, specify test tube number rather than chemical name.
 
-'heat [<tube> [<intensity>]] :- heats the mentioned test tube (default test tube is the last used one) with a given intensity (slight heating by default)
+'heat [<intensity> [<tube>]] :- heats the mentioned test tube (default test tube is the last used one) with a given intensity (slight heating by default)
 
 'flame test' :- Carries out flame test on your given salt
 
@@ -60,12 +60,15 @@ def codeError():
 def Quit():
     if salt != [None, None]:
         ch = raw_input('Are you sure? Press y to proceed, anything else to return>>> ').lower()
-        if ch == 'y': print 'The salt was' , saltFormula()
+        if ch == 'y':
+            formula, name = saltFormula()
+            print 'The salt was %s, with formula %s'%(name, formula)
         else: return
     print 'THANK YOU FOR USING THE SALT ANALYSIS EMULATOR.'
     quit()
 
 def printtubes():
+    print
     for i in range(len(tubes)):
         if not (tubes[i]['contents'] == []):
             output = 'Test Tube %d has'%(i+1)
@@ -73,9 +76,9 @@ def printtubes():
                 output += (' ' + str(chemical) + ',')
             output = output[:-1] + '.'
             if tubes[i]['heated']:
-                output += 'It has been heated', ('slightly' if tubes[i]['heated'] == 1 else 'strongly')
+                output += 'It has been heated %s.'%('slightly' if tubes[i]['heated'] == 1 else 'strongly')
             if tubes[i]['colour']:
-                output += 'Its colour is %s'%(tubes[i]['colour'])
+                output += 'Its colour is %s.'%(tubes[i]['colour'])
             print output
         else:
             print 'Test tube %d is empty'%(i+1)
@@ -116,25 +119,37 @@ def List(category):
             print chemical , ' - ', reag_list[chemical]
 
 def saltFormula():  #write code to return the formula as string
-    return salt[0]['name'] + ' ' + salt[1]['name'] 
+    name = salt[0]['name'] + ' ' + salt[1]['name']
+    if salt[0]['valency'] == salt[1]['valency']:
+        formula = salt[0]['formula'] + salt[1]['formula']
+    elif salt[0]['formula'] == 'NH4':
+        formula = '(NH4)%d%s'%(salt[1]['valency'], salt[1]['formula'])
+    elif salt[0]['valency'] == 1:
+        formula = '%s%d%s'%(salt[0]['formula'], salt[1]['valency'], salt[1]['formula'])
+    elif len(salt[1]['formula']) > 2:
+        formula = '%s%d(%s)%d'%(salt[0]['formula'], salt[1]['valency'], salt[1]['formula'], salt[0]['valency'])
+    else: #len(salt 1 formula) <= 2
+        formula = '%s%d%s%d'%(salt[0]['formula'], salt[1]['valency'], salt[1]['formula'], salt[0]['valency'])
+    return formula, name 
 
 def newSalt():
     global salt, saltflag, tubes
     if salt != [None, None]:
         ch = raw_input('Are you sure? Press y to proceed, anything else to exit>>> ').lower()
         if ch == 'y':
-            print 'The salt was' , saltFormula()
+            formula, name = saltFormula()
+            print 'The salt was %s, with formula %s'%(name, formula) 
         else: return
     salt[0] = choice(cations)
     salt[1] = choice(anions)
     print
     print 'A salt has been chosen'
-    if salt[0]['colour'] != None: print 'Colour -' , salt[0]['colour'], 'Smell'
+    if salt[0]['colour'] != None: print 'Colour -' , salt[0]['colour']
     else: print 'No recognizable colour'
-    if salt[0]['odour'] != None: print 'Odour -' , salt[0]['odour'], 'Smell'
+    if salt[0]['odour'] != None and salt[1]['odour'] != None: print 'Mix of smells detected'
+    elif salt[0]['odour'] != None: print 'Odour -' , salt[0]['odour'], 'Smell'
     elif salt[1]['odour'] != None: print 'Odour -' , salt[1]['odour'], 'Smell'
     else: print 'No recognizable odour'
-    print
     tubes = list()
     tubes.append(new_tube())
     saltflag = [False, False]
@@ -152,7 +167,8 @@ def guess(ion, name):
         print 'Wrong guess :/'
     if saltflag == [True, True]:
         print 'GREAT! YOU HAVE GUESSED THE SALT.'
-        print 'The salt was indeed %s.' % (saltFormula())
+        formula, name = saltFormula()
+        print 'The salt was indeed %s, with formula %s.' % (name, formula)
         reset()
 
 def reset():
@@ -181,6 +197,30 @@ def discard(index):
         if ch == 'y':
             del tubes[index]
             currenttubeindex = 0
+    if len(tubes) == 0:
+        tubes.append(new_tube())
+
+def heat(code):
+    global tubes, currenttubeindex
+    if len(code) == 1:
+        index = currenttubeindex
+        heat = 1
+    elif len(code) == 2:
+        index = currenttubeindex
+        heat = 2 if code[-1] == 'strongly' else 1
+    elif len(code) == 3 and code[2][0] == 't' and code[1] in ('slightly', 'strongly'):
+        index = int(code[1][1]) - 1
+        heat = 2 if code[-1] == 'strongly' else 1
+    else:
+        codeError()
+        return
+    if tubes[index]['contents'] != [None]:
+        tubes[index]['heated'] = heat
+        currenttubeindex = index
+    else:
+        print 'Test Tube %d is empty. It can\'t be heated'%(index+1)
+    prelim_tests()
+    
 
 def add(chemical, index = None):
     global currenttubeindex, tubes
@@ -196,9 +236,11 @@ def add(chemical, index = None):
         tubes[index]['contents'].append(chemical)
         currenttubeindex = index
     solubility_test()
+    prelim_tests()
 
 #FUNCTIONS FOR TESTS
 #These functions should be placed in the add() function (except for flame test, there's a keyword for that)
+#If heating is required for some of the tests, put it under the heating function
 
 def flame_test():
     if salt[0]['flame'] != None:
@@ -212,17 +254,50 @@ def solubility_test():
         print
         if salt[1]['formula'] == 'CO3': print 'Salt insoluble in water'
         else: print 'Salt soluble in water'
-        print
     elif sorted(tubes[i]['contents']) == sorted(['salt', 'dil_HCl']): #test for solubility in dil HCl
         print
-        if salt[0]['formula'] == 'Pb': print 'White precipitate is formed'
+        if salt[0]['formula'] == 'Pb':
+            print 'White precipitate is formed'
+            tubes[i]['colour'] = 'white'
         else: print 'Soluble in dil_HCl'
-        print
 
-##def prelim_tests():
-##    i = currenttubeindex #i for index
-##    if tubes[i]['contents'] == [
-
+def prelim_tests():
+    global tubes
+    i = currenttubeindex
+    
+    if sorted(tubes[i]['contents']) == ['dil_HCl', 'salt']: #dilute acid test
+        if salt[1]['formula'] == 'CO3':
+            print '\nColourless, odourless gas evolved.'
+            tubes[i]['gas'] = 'CO2'
+        elif tubes[i]['heated']: #only CO3 reaction takes place without heat
+            if salt[1]['formula'] == 'S':
+                print '\nGas with rotten egg smell evolved'
+                tubes[i]['gas'] = 'H2S'
+            elif salt[1]['formula'] == 'NO2':
+                print '\nSlight brown fumes evolved'
+                tubes[i]['gas'] = 'NO'
+            elif salt[1]['formula'] == 'SO3':
+                print '\nGas with burning sulphur smell evolved'
+                tubes[i]['gas'] = 'SO2'
+        
+    if sorted(tubes[i]['contents']) == ['conc_H2SO4', 'salt']:
+        if salt[1]['formula'] == 'Cl':
+            print '\nColourless gas with irritating smell'
+            tubes[i]['gas'] = 'HCl'
+        elif tubes[i]['heated']: #only Cl reaction takes place without heat
+            if salt[1]['formula'] == 'Br':
+                print '\nReddish brown gas evolved'
+                tubes[i]['gas'] = 'Br2'
+            elif salt[1]['formula'] == 'I':
+                print '\nViolet vapours evolved'
+                tubes[i]['gas'] = 'I2'
+            elif salt[1]['formula'] == 'CH3COO':
+                print '\nGas with vinegar smell evolved'
+                tubes[i]['gas'] = 'CH3COOH'
+            elif salt[1]['formula'] == 'NO3':
+                print '\nSlight brown fumes evolved'
+                tubes[i]['gas'] = 'NO'
+    
             
 #Actual loop for taking inputs-
 print '''WELCOME TO SALT ANALYSIS EMULATOR!
@@ -235,7 +310,17 @@ If you want to start analysing a salt, type new'''
 #Dictionary for each cation/anion
 #anions:
 carbonate = {'name':'carbonate', 'type':'anion', 'formula':'CO3', 'valency':2, 'odour':None}
-anions = [carbonate]
+sulphide = {'name':'sulphide', 'type':'anion', 'formula':'S', 'valency':2, 'odour':'Rotten egg'}
+nitrite = {'name':'nitrite', 'type':'anion', 'formula':'NO2', 'valency':1, 'odour':None}
+sulphite = {'name':'sulphite', 'type':'anion', 'formula':'SO3', 'valency':2, 'odour':None}
+chloride = {'name':'chloride', 'type':'anion', 'formula':'Cl', 'valency':1, 'odour':None}
+bromide = {'name':'bromide', 'type':'anion', 'formula':'Br', 'valency':1, 'odour':None}
+iodide = {'name':'iodide', 'type':'anion', 'formula':'I', 'valency':1, 'odour':None}
+acetate = {'name':'acetate', 'type':'anion', 'formula':'CH3COO', 'valency':1, 'odour':'Vinegar'}
+nitrate = {'name':'nitrate', 'type':'anion', 'formula':'NO3', 'valency':1, 'odour':None}
+sulphate = {'name':'sulphate', 'type':'anion', 'formula':'SO4', 'valency':2, 'odour':None}
+phosphate = {'name':'phosphate', 'type':'anion', 'formula':'PO4', 'valency':3, 'odour':None}
+anions = [sulphide, carbonate, nitrite, chloride, bromide, iodide, sulphate, phosphate]
 #cations
 ammonium = {'name':'Ammonium', 'type':'cation', 'formula':'NH4', 'valency':1, 'odour':'Ammoniacal', 'flame':None, 'colour':None} 
 lead = {'name':'Lead', 'type':'cation', 'formula':'Pb', 'valency':2, 'odour':None, 'flame':None, 'colour':None} 
@@ -283,25 +368,7 @@ while True:
         elif code[1] in ('OS', 'SE', 'WE'):
             tubes.append(new_tube(code[1]))
     elif code[0] == 'heat':
-        flag = True
-        if len(code) == 1:
-            index = currenttubeindex
-            heat = 1
-        elif len(code) == 2 and code[1][0] == 't':
-            index = int(code[1][1]) - 1
-            heat = 1
-        elif len(code) == 3 and code[1][0] == 't' and code[2] in ('slightly', 'strongly'):
-            index = int(code[1][1]) - 1
-            heat = 2 if code[-1] == 'strongly' else 1
-        else:
-            flag = False
-            codeError()
-        if flag:
-            if tubes[index]['contents'] != [None]:
-                tubes[index]['heated'] = heat
-                currenttubeindex = index
-            else:
-                print 'Test Tube %d is empty. It can\'t be heated'%(index+1)
+        heat(code)
     elif code == ['flame', 'test']: flame_test()
     elif code[0] == 'guess' and code[1] in ('cation', 'anion') and code[2] == 'is' and \
          (code[3] in [ion['formula'] for ion in (cations+anions)]):
