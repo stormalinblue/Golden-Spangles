@@ -26,7 +26,7 @@ All functions:
             b. 'reag' :- Lists out all special reagents and indicators
             c. 'misc' :- Miscellanoeus stuff like water, paper pellets, etc
 
-'add <chemical name> [in <tube>]' :- adds the chemical in the specified test tube. Test tube not specified, then adds to last used test tube. Can add contents of one test tube into the other, specify test tube number rather than chemical name.
+'add <chemical name> [to <tube>]' :- adds the chemical in the specified test tube. Test tube not specified, then adds to last used test tube. Can add contents of one test tube into the other, specify test tube number rather than chemical name.
 
 'heat [<tube> [<intensity>]] :- heats the mentioned test tube (default test tube is the last used one) with a given intensity (slight heating by default)
 
@@ -34,7 +34,7 @@ All functions:
 
 'guess <ion> is <name>' :- Give your guess for the specified ion ('cation' or 'anion'). If right, gain points. If wrong lose points.
 
-'pass in <tube>' :- Pass the evolved gas in the previous reaction into a specified test tube
+'pass in <tube>' :- Pass the evolved gas in the previous reaction (if any) into a specified test tube
 
 'introduce <chemical> [to <tube>]' :- Introduce the chemical to the test tube (default test tube is last one used) by a glass rod
 
@@ -47,6 +47,8 @@ All functions:
 'quit' :- Quit out of Salt Analysis Emulator. Gives you the answer to the old salt, if a salt is stil being analysed.
 
 'new tube' :- Take a new test tube
+
+'discard <tube>' :- Remove the specified test tube
 
 Here, test tubes also refer to boiling tubes, so don't worry about that.
 Also there is no limit to the number of test tubes you can take.
@@ -65,15 +67,20 @@ def Quit():
 
 def printtubes():
     for i in range(len(tubes)):
-        if not tubes[i] == []:
-            if None in tubes[i]: print 'Test Tube', i+1, ' has nothing'
-            else:
-                output = 'Test Tube ' + str(i+1) + ' has'
-                for chemical in tubes[i]:
-                     output += (' ' + str(chemical) + ',')
-                if heatedflags[i]: print output[:-1] + '. It has been heated', ('slightly' if heatedflags[i] == 1 else 'strongly')
-                else: print output[:-1]
+        if not (tubes[i]['contents'] == []):
+            output = 'Test Tube %d has'%(i+1)
+            for chemical in tubes[i]['contents']:
+                output += (' ' + str(chemical) + ',')
+            output = output[:-1] + '.'
+            if tubes[i]['heated']:
+                output += 'It has been heated', ('slightly' if tubes[i]['heated'] == 1 else 'strongly')
+            if tubes[i]['colour']:
+                output += 'Its colour is %s'%(tubes[i]['colour'])
+            print output
+        else:
+            print 'Test tube %d is empty'%(i+1)
     print 'Current Test Tube:' , currenttubeindex + 1
+    
 #ALL CHEMICALS LISTS
 acids_list = [{'dil_HCl':'Diluted Hydrochloric acid'}, {'conc_HCl':'Concentrated Hydrochloric acid'},
               {'dil_H2SO4':'Diluted Sulphuric acid'}, {'conc_H2SO4':'Concentrated Sulphuric acid'},
@@ -128,24 +135,95 @@ def newSalt():
     elif salt[1]['odour'] != None: print 'Odour -' , salt[1]['odour'], 'Smell'
     else: print 'No recognizable odour'
     print
-    tubes = [[None]]
+    tubes = list()
+    tubes.append(new_tube())
     saltflag = [False, False]
+
+def guess(ion, name):
+    dictionary = {'cation':0, 'anion':1}
+    index = dictionary[ion]
+    if saltflag[index] == True:
+        print 'You have already guessed the %s, try to guess the other ion.'%(ion)
+        return
+    if name == salt[index]['formula']:
+        print 'CORRECT! The %s was %s, with formula %s' % (ion, salt[index]['name'], salt[index]['formula'])
+        saltflag[index] = True
+    else:
+        print 'Wrong guess :/'
+    if saltflag == [True, True]:
+        print 'GREAT! YOU HAVE GUESSED THE SALT.'
+        print 'The salt was indeed %s.' % (saltFormula())
+        reset()
+
+def reset():
+    global salt, saltflag, tubes, currenttubeindex
+    salt = [None, None]  #Use this as a flag to check whether new salt has been picked
+    saltflag = [False, False]  #use this as a flag to check whether a salt has been guessed correctly
+    tubes = list()
+    tubes.append(new_tube()) 
+
+def new_tube(chemical = None):
+    global currenttubeindex
+    tube = {'contents':list(), 'heated':0, 'colour':None, 'gas':None}
+    #0 - not heated, 1 - slightly heated, 2 - strongly heated
+    #'gas' value is to keep track of what gas is being emitted
+    if chemical != None: tube['contents'].append(chemical)
+    currenttubeindex = len(tubes)
+    return tube
+
+def discard(index):
+    global tubes, currenttubeindex
+    if tubes[index]['contents'] == []:
+        del tubes[index]
+        currenttubeindex = 0
+    else:
+        ch = raw_input('This test tube is not empty. Are you sure you want to discard this tube? Press y to continue: ').lower()
+        if ch == 'y':
+            del tubes[index]
+            currenttubeindex = 0
 
 def add(chemical, index = None):
     global currenttubeindex, tubes
     if index == None: index = currenttubeindex
+    
     if chemical[0] == 't': #if adding one test tube into another
-        emptiedindex = int(chemical[-1])
-        tubes[index].extend(tubes[emptiedindex])
-        if index > emptiedindex: currenttubeindex = index - 1
-        else: currenttubeindex = index
-        del tubes[emptiedindex]
-        return
-    if not (chemical in reagents or chemical in acids or chemical in misc or chemical == 'salt'): return 'error'
-    if tubes[index] == [None]: tubes[index] = [chemical]
-    else: tubes[index].append(chemical)
-    currenttubeindex = index
+        emptiedindex = int(chemical[-1]) - 1
+        tubes[index]['contents'].extend(tubes[emptiedindex]['contents'])
+        currenttubeindex = index
+        tubes[emptiedindex] = new_tube()
+    else:
+        if not (chemical in reagents or chemical in acids or chemical in misc or chemical == 'salt'): return 'error'
+        tubes[index]['contents'].append(chemical)
+        currenttubeindex = index
+    solubility_test()
 
+#FUNCTIONS FOR TESTS
+#These functions should be placed in the add() function (except for flame test, there's a keyword for that)
+
+def flame_test():
+    if salt[0]['flame'] != None:
+        print 'The flame is %s in colour' % (salt[0]['flame'])
+    else:
+        print 'No characteristic flame colour'
+
+def solubility_test():
+    i = currenttubeindex
+    if sorted(tubes[i]['contents']) == sorted(['salt', 'water']): #test for solubility in water
+        print
+        if salt[1]['formula'] == 'CO3': print 'Salt insoluble in water'
+        else: print 'Salt soluble in water'
+        print
+    elif sorted(tubes[i]['contents']) == sorted(['salt', 'dil_HCl']): #test for solubility in dil HCl
+        print
+        if salt[0]['formula'] == 'Pb': print 'White precipitate is formed'
+        else: print 'Soluble in dil_HCl'
+        print
+
+##def prelim_tests():
+##    i = currenttubeindex #i for index
+##    if tubes[i]['contents'] == [
+
+            
 #Actual loop for taking inputs-
 print '''WELCOME TO SALT ANALYSIS EMULATOR!
 
@@ -160,14 +238,10 @@ carbonate = {'name':'carbonate', 'type':'anion', 'formula':'CO3', 'valency':2, '
 anions = [carbonate]
 #cations
 ammonium = {'name':'Ammonium', 'type':'cation', 'formula':'NH4', 'valency':1, 'odour':'Ammoniacal', 'flame':None, 'colour':None} 
-cations = [ammonium]
+lead = {'name':'Lead', 'type':'cation', 'formula':'Pb', 'valency':2, 'odour':None, 'flame':None, 'colour':None} 
+cations = [ammonium, lead]
 
-
-salt = [None, None]  #Use this as a flag to check whether new salt has been picked
-saltflag = [False, False]
-heatedflags = [0]  #0 - Not heated, 1 - slightly heated, 2 - strongly heated
-tubes = [list()]
-currenttubeindex = 0
+reset()
 
 while True:
     print
@@ -191,15 +265,13 @@ while True:
         elif code[1] == 'tube':
             if len(code) != 2: codeError()
             else:
-                tubes.append([None])
-                currenttubeindex = len(tubes) - 1
-                heatedflags.append(0)
+                tubes.append(new_tube())
         else: codeError()
         
     if salt == [None, None]: continue
     
     if code[0] == 'add':
-        if len(code) == 4 and code[2] == 'in':
+        if len(code) == 4 and code[2] == 'to':
             errorstring = add(code[1], int(code[-1][-1]) - 1)
         elif len(code) == 2:
             errorstring = add(code[-1])
@@ -209,9 +281,7 @@ while True:
     elif code[0] == 'create':
         if len(code) != 2: codeError()
         elif code[1] in ('OS', 'SE', 'WE'):
-            tubes.append([code[1]])
-            currenttubeindex = len(tubes) - 1
-            heatedflags.append(0)
+            tubes.append(new_tube(code[1]))
     elif code[0] == 'heat':
         flag = True
         if len(code) == 1:
@@ -227,13 +297,19 @@ while True:
             flag = False
             codeError()
         if flag:
-            if tubes[index] != [None]:
-                heatedflags[index] = heat
+            if tubes[index]['contents'] != [None]:
+                tubes[index]['heated'] = heat
                 currenttubeindex = index
             else:
                 print 'Test Tube %d is empty. It can\'t be heated'%(index+1)
+    elif code == ['flame', 'test']: flame_test()
+    elif code[0] == 'guess' and code[1] in ('cation', 'anion') and code[2] == 'is' and \
+         (code[3] in [ion['formula'] for ion in (cations+anions)]):
+        guess(code[1], code[3])
+    elif code[0] == 'discard' and code[1][0] == 't':
+        discard(int(code[1][1]) - 1)
         
-    printtubes()
+    if salt != [None, None]: printtubes()
 
 
 
