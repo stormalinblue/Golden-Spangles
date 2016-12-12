@@ -36,7 +36,7 @@ All functions:
 
 'pass in <tube>' :- Pass the evolved gas in the previous reaction (if any) into a specified test tube
 
-'introduce <chemical> [to <tube>]' :- Introduce the chemical to the test tube (default test tube is last one used) by a glass rod
+'introduce <chemical> [to <tube>]' :- Introduce the chemical/paper to the test tube (default test tube is last one used) at the mouth of the test tube. The chemical is not added to the test tube itself.
 
 'create SE' :- Create the Sodium Carbonate Extract
 
@@ -76,9 +76,9 @@ def printtubes():
                 output += (' ' + str(chemical) + ',')
             output = output[:-1] + '.'
             if tubes[i]['heated']:
-                output += 'It has been heated %s.'%('slightly' if tubes[i]['heated'] == 1 else 'strongly')
+                output += ' It has been heated %s.'%('slightly' if tubes[i]['heated'] == 1 else 'strongly')
             if tubes[i]['colour']:
-                output += 'Its colour is %s.'%(tubes[i]['colour'])
+                output += ' Its colour is %s.'%(tubes[i]['colour'])
             print output
         else:
             print 'Test tube %d is empty'%(i+1)
@@ -89,34 +89,38 @@ acids_list = [{'dil_HCl':'Diluted Hydrochloric acid'}, {'conc_HCl':'Concentrated
               {'dil_H2SO4':'Diluted Sulphuric acid'}, {'conc_H2SO4':'Concentrated Sulphuric acid'},
               {'dil_HNO3':'Diluted Nitric acid'}, {'conc_HNO3':'Concentrated Nitric acid'}, {'CH3COOH':'Acetic Acid'}]
 misc_list = [{'water':'water'}, {'paper':'Paper Pellets'}, {'LApaper':'Lead Acetate paper'}, {'ADpaper':'Acidified Dichromate Paper'},
-             {'Moist Starch Paper':'MSpaper'}, {'Moist Starch Iodide Paper':'MSIpaper'}, {'Moist Blue Litmus Paper':'MBLpaper'}]
+             {'MSpaper':'Moist Starch Paper'}, {'MSIpaper':'Moist Starch Iodide Paper'}, {'MBLpaper':'Moist Blue Litmus Paper'}]
 # Add more reagents specific to certain tests for new cations/anions
-reag_list = [{'NH4OH':'Ammonium hydroxide'}]
+reag_list = [{'NH4OH':'Ammonium hydroxide'}, {'lime':'Lime water / Ca(OH)2'}, {'H2S':'Hydrogen Sulphide'},
+             {'NH4Cl':'Ammonium chloride'}, {'(NH4)2CO3':'Ammonium carbonate'}, {'Na2HPO4':'Disodium hydrogen phosphate'}]
 
 acids = [acid.keys()[0] for acid in acids_list]
+acids.sort()
 misc = [misc.keys()[0] for misc in misc_list]
+misc.sort()
 reagents = [reag.keys()[0] for reag in reag_list]
+reagents.sort()
 
 def List(category):
     if category == '*':
         print 'ACIDS:'
         for chemical in acids:
-            print chemical , ' - ', acids_list[chemical]
+            print acids_list[chemical] , ' - ', chemical
         print'\nREAGENTS'
         for chemical in reagents:
-            print chemical , ' - ', reag_list[chemical]
+            print reag_list[chemical] , ' - ', chemical
         print '\nMISCELLANEOUS'
         for chemical in misc:
-            print chemical , ' - ', misc_list[chemical]
+            print misc_list[chemical] , ' - ', chemical
     elif category == 'acids':
         for chemical in acids:
-            print chemical , ' - ', acids_list[chemical]
+            print acids_list[chemical] , ' - ', chemical
     elif category == 'misc':
         for chemical in misc:
-            print chemical , ' - ', misc_list[chemical]
+            print misc_list[chemical] , ' - ', chemical
     elif category == 'reag': 
         for chemical in reagents:
-            print chemical , ' - ', reag_list[chemical]
+            print reag_list[chemical] , ' - ', chemical
 
 def saltFormula():  #write code to return the formula as string
     name = salt[0]['name'] + ' ' + salt[1]['name']
@@ -127,9 +131,15 @@ def saltFormula():  #write code to return the formula as string
     elif salt[0]['valency'] == 1:
         formula = '%s%d%s'%(salt[0]['formula'], salt[1]['valency'], salt[1]['formula'])
     elif len(salt[1]['formula']) > 2:
-        formula = '%s%d(%s)%d'%(salt[0]['formula'], salt[1]['valency'], salt[1]['formula'], salt[0]['valency'])
+        if salt[1]['valency'] == 1:
+            formula = '%s(%s)%d'%(salt[0]['formula'], salt[1]['formula'], salt[0]['valency'])
+        else:
+            formula = '%s%d(%s)%d'%(salt[0]['formula'], salt[1]['valency'], salt[1]['formula'], salt[0]['valency'])
     else: #len(salt 1 formula) <= 2
-        formula = '%s%d%s%d'%(salt[0]['formula'], salt[1]['valency'], salt[1]['formula'], salt[0]['valency'])
+        if salt[1]['valency'] == 1:
+            formula = '%s%s%d'%(salt[0]['formula'], salt[1]['formula'], salt[0]['valency'])
+        else:
+            formula = '%s%d%s%d'%(salt[0]['formula'], salt[1]['valency'], salt[1]['formula'], salt[0]['valency'])
     return formula, name 
 
 def newSalt():
@@ -157,10 +167,18 @@ def newSalt():
 def guess(ion, name):
     dictionary = {'cation':0, 'anion':1}
     index = dictionary[ion]
+                                
     if saltflag[index] == True:
         print 'You have already guessed the %s, try to guess the other ion.'%(ion)
         return
-    if name == salt[index]['formula']:
+    if index == 0 and name == 'Fe':
+        valence = raw_input('Which Fe ion? The ion with valency 2 or valency 3? ')
+        if valence == salt[0]['valency'] and name == salt[0]['name']:
+            print 'CORRECT! The cation was %s, with formula %s%d+' % (salt[index]['name'], salt[index]['formula'], valence)
+            saltflag[index] = True
+        else:
+            print 'Wrong guess :/'
+    elif name == salt[index]['formula']:
         print 'CORRECT! The %s was %s, with formula %s' % (ion, salt[index]['name'], salt[index]['formula'])
         saltflag[index] = True
     else:
@@ -219,8 +237,36 @@ def heat(code):
         currenttubeindex = index
     else:
         print 'Test Tube %d is empty. It can\'t be heated'%(index+1)
-    prelim_tests()
+    prelim_tests_anion()
     
+def pass_gas(gas, index):  #Keep updating for confirmatory tests
+    global tubes, currenttubeindex
+    if gas == 'CO2' and tubes[index]['contents'] == ['lime']:
+        print '\nSolution turned white. Becomes colourless with excess.'
+        tubes[index]['colour'] = 'white'
+    elif (gas == 'NO3' or gas == 'NO2') and tubes[index]['contents'] == ['FeSO4']:
+        print '\nSolution turns black.'
+        tubes[index]['colour'] = 'black'
+    currenttubeindex = index
+
+def introduce(chemical, index = None):
+    global currenttubeindex
+    if index == None: index = currenttubeindex
+    if tubes[index]['gas'] == 'H2S' and chemical == 'LApaper':
+        print '\nLead acetate paper turns black'
+    elif tubes[index]['gas'] == 'SO3' and chemical == 'ADpaper':
+        print '\nAcidified dichromate paper turns green'
+    elif tubes[index]['gas'] == 'HCl' and chemical == 'NH4OH':
+        print '\nDense white fumes formed'
+    elif tubes[index]['gas'] == 'Br' and chemical == 'MSPaper':
+        print '\nThe moist starch paper turns yellow'
+    elif tubes[index]['gas'] == 'Br' and chemical == 'MSIpaper':
+        print '\nThe moist starch iodide paper turns blue'
+    elif tubes[index]['gas'] == 'I' and chemical == 'MSpaper':
+        print '\nThe moist starch paper turns blue black'
+    elif tubes[index]['gas'] == 'CH3COO' and chemical == 'MBLpaper':
+        print '\nMoist blue litmus paper turns red'
+    currenttubeindex = index
 
 def add(chemical, index = None):
     global currenttubeindex, tubes
@@ -230,13 +276,16 @@ def add(chemical, index = None):
         emptiedindex = int(chemical[-1]) - 1
         tubes[index]['contents'].extend(tubes[emptiedindex]['contents'])
         currenttubeindex = index
-        tubes[emptiedindex] = new_tube()
+        if not (tubes[emptiedindex]['contents'] == ['OS'] or tubes[emptiedindex]['contents'] == ['SE'] or \
+           tubes[emptiedindex]['contents'] == ['WE']):
+            tubes[emptiedindex] = new_tube()
     else:
         if not (chemical in reagents or chemical in acids or chemical in misc or chemical == 'salt'): return 'error'
         tubes[index]['contents'].append(chemical)
         currenttubeindex = index
     solubility_test()
-    prelim_tests()
+    prelim_tests_anion()
+    prelim_tests_cation()
 
 #FUNCTIONS FOR TESTS
 #These functions should be placed in the add() function (except for flame test, there's a keyword for that)
@@ -261,7 +310,7 @@ def solubility_test():
             tubes[i]['colour'] = 'white'
         else: print 'Soluble in dil_HCl'
 
-def prelim_tests():
+def prelim_tests_anion():
     global tubes
     i = currenttubeindex
     
@@ -297,7 +346,30 @@ def prelim_tests():
             elif salt[1]['formula'] == 'NO3':
                 print '\nSlight brown fumes evolved'
                 tubes[i]['gas'] = 'NO'
-    
+
+def prelim_tests_cation():
+    global tubes
+    i = currenttubeindex
+    colour = None
+    if tubes[i]['contents'] == ['OS', 'dil_HCl'] and salt[0]['formula'] == 'Pb': colour = 'White'
+    elif tubes[i]['contents'] == ['OS', 'dil_HCl', 'H2S']:
+        if salt[0]['formula'] == 'Cu': colour = 'Black'
+        elif salt[0]['formula'] == 'Cd': colour = 'Yellow'
+    elif tubes[i]['contents'] == ['OS', 'NH4Cl', 'NH4OH']:
+        if salt[0]['formula'] == 'Fe' and salt[0]['valency'] == 2: colour = 'Green'
+        elif salt[0]['formula'] == 'Fe' and salt[0]['valency'] == 3: colour = 'Yellowish-brown'
+        elif salt[0]['formula'] == 'Al': colour = 'Gelatinous white'
+    elif tubes[i]['contents'] == ['OS', 'NH4Cl', 'NH4OH', 'H2S']:
+        if salt[0]['formula'] == 'Co' or salt[0]['formula'] == 'Ni': colour = 'Black'
+        elif salt[0]['formula'] == 'Mn': colour = 'Off-white'
+        elif salt[0]['formula'] == 'Zn': colour = 'Dirty white' 
+    elif tubes[i]['contents'] == ['OS', 'NH4Cl', 'NH4OH', '(NH4)2CO3'] and salt[0]['formula'] in ('Ca', 'Sr', 'Ba'): colour = 'White'
+    elif tubes[i]['contents'] == ['OS', 'NH4Cl', 'NH4OH', 'Na2HPO4'] and salt[0]['formula'] == 'Mg': colour = 'White'
+    if colour != None:
+        print '%s precipiate formed'%(colour)
+        tubes[i]['colour'] = colour
+
+
             
 #Actual loop for taking inputs-
 print '''WELCOME TO SALT ANALYSIS EMULATOR!
@@ -320,11 +392,25 @@ acetate = {'name':'acetate', 'type':'anion', 'formula':'CH3COO', 'valency':1, 'o
 nitrate = {'name':'nitrate', 'type':'anion', 'formula':'NO3', 'valency':1, 'odour':None}
 sulphate = {'name':'sulphate', 'type':'anion', 'formula':'SO4', 'valency':2, 'odour':None}
 phosphate = {'name':'phosphate', 'type':'anion', 'formula':'PO4', 'valency':3, 'odour':None}
-anions = [sulphide, carbonate, nitrite, chloride, bromide, iodide, sulphate, phosphate]
+anions = [sulphide, carbonate, nitrite, sulphite, chloride, bromide, iodide, acetate, nitrate, sulphate, phosphate]
+
 #cations
 ammonium = {'name':'Ammonium', 'type':'cation', 'formula':'NH4', 'valency':1, 'odour':'Ammoniacal', 'flame':None, 'colour':None} 
-lead = {'name':'Lead', 'type':'cation', 'formula':'Pb', 'valency':2, 'odour':None, 'flame':None, 'colour':None} 
-cations = [ammonium, lead]
+lead = {'name':'Lead', 'type':'cation', 'formula':'Pb', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
+copper = {'name':'Copper', 'type':'cation', 'formula':'Cu', 'valency':2, 'odour':None, 'flame':'blue-green', 'colour':'blue-green'}
+cadmium = {'name':'Cadmium', 'type':'cation', 'formula':'Cd', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
+ferrous = {'name':'Ferrous', 'type':'cation', 'formula':'Fe', 'valency':2, 'odour':None, 'flame':None, 'colour':'Pale green'}
+ferric = {'name':'Ferric', 'type':'cation', 'formula':'Fe', 'valency':3, 'odour':None, 'flame':None, 'colour':'Yellow-brown'}
+aluminium = {'name':'Aluminium', 'type':'cation', 'formula':'Al', 'valency':3, 'odour':None, 'flame':None, 'colour':None}
+cobalt = {'name':'Cobalt', 'type':'cation', 'formula':'Co', 'valency':2, 'odour':None, 'flame':None, 'colour':'Deep pink'}
+nickel = {'name':'Nickel', 'type':'cation', 'formula':'Ni', 'valency':2, 'odour':None, 'flame':None, 'colour':'Green'}
+manganese = {'name':'Manganese', 'type':'cation', 'formula':'Mn', 'valency':2, 'odour':None, 'flame':None, 'colour':'Pale pink'}
+zinc = {'name':'Zinc', 'type':'cation', 'formula':'Zn', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
+barium = {'name':'Barium', 'type':'cation', 'formula':'Ba', 'valency':2, 'odour':None, 'flame':'Apple-green', 'colour':None}
+strontium = {'name':'Strontium', 'type':'cation', 'formula':'Sr', 'valency':2, 'odour':None, 'flame':'Crimson red', 'colour':None}
+calcium = {'name':'Calcium', 'type':'cation', 'formula':'Ca', 'valency':2, 'odour':None, 'flame':'Brick red', 'colour':None}
+magnesium = {'name':'Magnesium', 'type':'cation', 'formula':'Mg', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
+cations = [ammonium, lead, copper, cadmium, ferrous, ferric, aluminium, cobalt, nickel, manganese, zinc, barium, strontium, calcium, magnesium]
 
 reset()
 
@@ -334,6 +420,10 @@ while True:
     code = codestring.split()  #retreive individual keyword
     code = [word for word in code if word.isalnum() or word == '*' or \
             (word in reagents or word in acids or word in misc or word == 'salt')]  #remove any junk, spaces etc
+    if len(code) == 0:
+        codeError()
+        continue
+    
     if code[0] == 'help':
         if len(code) == 1:
             print helpMsg
@@ -373,8 +463,19 @@ while True:
     elif code[0] == 'guess' and code[1] in ('cation', 'anion') and code[2] == 'is' and \
          (code[3] in [ion['formula'] for ion in (cations+anions)]):
         guess(code[1], code[3])
-    elif code[0] == 'discard' and code[1][0] == 't':
+    elif len(code) == 2 and code[0] == 'discard' and code[1][0] == 't':
         discard(int(code[1][1]) - 1)
+    elif len(code) == 3 and [code[0], code[1]] == ['pass', 'in'] and code[-1][0] == 't':
+        gas = tubes[currenttubeindex]['gas']
+        if gas != None: pass_gas(gas, int(code[-1][-1]) - 1)
+        else: print 'No gas was formed in the previous reaction'
+    elif code[0] == 'introduce':
+        if len(code) == 2 and code[1] in (misc + reagents + acids):
+            introduce(code[1])
+        elif len(code) == 4 and code[1] in (misc + reagents + acids):
+            introduce(code[1], int(code[-1][-1]) - 1)
+        else:
+            codeError()
         
     if salt != [None, None]: printtubes()
 
