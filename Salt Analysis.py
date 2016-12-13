@@ -85,46 +85,47 @@ def printtubes():
     print 'Current Test Tube:' , currenttubeindex + 1
     
 #ALL CHEMICALS LISTS
-acids_list = {'dil_HCl':'Diluted Hydrochloric acid', 'conc_HCl':'Concentrated Hydrochloric acid',
-              'dil_H2SO4':'Diluted Sulphuric acid', 'conc_H2SO4':'Concentrated Sulphuric acid',
-              'dil_HNO3':'Diluted Nitric acid', 'conc_HNO3':'Concentrated Nitric acid', 'CH3COOH':'Acetic Acid'}
-misc_list = {'water':'water', 'paper':'Paper Pellets', 'LApaper':'Lead Acetate paper', 'ADpaper':'Acidified Dichromate Paper',
-             'MSpaper':'Moist Starch Paper', 'MSIpaper':'Moist Starch Iodide Paper', 'MBLpaper':'Moist Blue Litmus Paper'}
+acids_list = {'Diluted Hydrochloric acid': 'dil_HCl', 'Concentrated Nitric acid': 'conc_HNO3',
+              'Concentrated Sulphuric acid': 'conc_H2SO4', 'Diluted Sulphuric acid': 'dil_H2SO4',
+              'Concentrated Hydrochloric acid': 'conc_HCl', 'Diluted Nitric acid': 'dil_HNO3', 'Acetic Acid': 'CH3COOH'}
+misc_list = {'Moist Blue Litmus Paper': 'MBLpaper', 'Acidified Dichromate Paper': 'ADpaper', 'Moist Starch Iodide Paper': 'MSIpaper',
+             'Moist Starch Paper': 'MSpaper', 'Water': 'water', 'Paper Pellets': 'paper', 'Lead Acetate paper': 'LApaper'}
 # Add more reagents specific to certain tests for new cations/anions
-reag_list = {'NH4OH':'Ammonium hydroxide', 'lime':'Lime water / Ca(OH)2', 'H2S':'Hydrogen Sulphide',
-             'NH4Cl':'Ammonium chloride', '(NH4)2CO3':'Ammonium carbonate', 'Na2HPO4':'Disodium hydrogen phosphate',
-             'NaOH':'Sodium Hydroxide', 'ness':'Nessler\'s reagent', 'BaCl2':'Barium chloride',
-             '(CH3COO)2Pb':'Lead acetate', 'CH3COONH4':'Ammonium acetate', 'molybdate':'Ammonium molybdate / (NH4)2MoO4',
-             'magnesia':'Magnesia mixture', 'phenol':'Phenolphthalein', 'MgSO4':'Magnesium sulphate',
-             'CaCl2':'Calcium chloride', 'SNP':'Sodium nitroprusside / Na[Fe(CN)5NO]'}
+reag_list = {'Calcium chloride': 'CaCl2', 'Acidified Potassium dichromate': 'K2Cr2O7', 'Ammonium chloride': 'NH4Cl',
+             'Disodium hydrogen phosphate': 'Na2HPO4', 'Phenolphthalein': 'phenol', 'Magnesia mixture': 'magnesia',
+             'Ammonium carbonate': '(NH4)2CO3', "Nessler's reagent": 'ness', 'Sodium nitroprusside / Na[Fe(CN)5NO]': 'SNP',
+             'Sodium Hydroxide': 'NaOH', 'Barium chloride': 'BaCl2', 'Ammonium molybdate / (NH4)2MoO4': 'molybdate',
+             'Magnesium sulphate': 'MgSO4', 'Ammonium acetate': 'CH3COONH4', 'Ammonium hydroxide': 'NH4OH',
+             'Lead acetate': '(CH3COO)2Pb', 'Lime water / Ca(OH)2': 'lime', 'Hydrogen Sulphide': 'H2S',
+             'Acidified Potassium manganate':'KMnO4'}
 
-acids = acids_list.keys()
+acids = acids_list.values()
 acids.sort()
-misc = misc_list.keys()
+misc = misc_list.values()
 misc.sort()
-reagents = reag_list.keys()
+reagents = reag_list.values()
 reagents.sort()
 
 def List(category):
     if category == '*':
         print 'ACIDS:'
-        for chemical in acids:
-            print acids_list[chemical] , ' - ', chemical
+        for chemical in sorted(acids_list.keys()):
+            print chemical, ' - ', acids_list[chemical] 
         print'\nREAGENTS'
-        for chemical in reagents:
-            print reag_list[chemical] , ' - ', chemical
+        for chemical in sorted(reag_list.keys()):
+            print chemical, ' - ', reag_list[chemical] 
         print '\nMISCELLANEOUS'
-        for chemical in misc:
-            print misc_list[chemical] , ' - ', chemical
+        for chemical in sorted(misc_list.keys()):
+            print chemical, ' - ', misc_list[chemical]
     elif category == 'acids':
-        for chemical in acids:
-            print acids_list[chemical] , ' - ', chemical
+        for chemical in sorted(acids_list.keys()):
+            print chemical, ' - ', acids_list[chemical] 
     elif category == 'misc':
-        for chemical in misc:
-            print misc_list[chemical] , ' - ', chemical
+        for chemical in sorted(misc_list.keys()):
+            print chemical, ' - ', misc_list[chemical] 
     elif category == 'reag': 
-        for chemical in reagents:
-            print reag_list[chemical] , ' - ', chemical
+        for chemical in sorted(reag_list.keys()):
+            print chemical, ' - ', reag_list[chemical] 
 
 def saltFormula():  #write code to return the formula as string
     name = salt[0]['name'] + ' ' + salt[1]['name']
@@ -241,7 +242,10 @@ def heat(code):
         currenttubeindex = index
     else:
         print 'Test Tube %d is empty. It can\'t be heated'%(index+1)
+
+    #tests
     prelim_tests_anion()
+    sulphite_confirm_tests()
     phosphate_confirm_tests()
     
 def pass_gas(gas, index):  #Keep updating for confirmatory tests
@@ -259,7 +263,7 @@ def introduce(chemical, index = None):
     if index == None: index = currenttubeindex
     if tubes[index]['gas'] == 'H2S' and chemical == 'LApaper':
         print '\nLead acetate paper turns black'
-    elif tubes[index]['gas'] == 'SO3' and chemical == 'ADpaper':
+    elif tubes[index]['gas'] == 'SO2' and chemical == 'ADpaper':
         print '\nAcidified dichromate paper turns green'
     elif tubes[index]['gas'] == 'HCl' and chemical == 'NH4OH':
         print '\nDense white fumes formed'
@@ -282,16 +286,22 @@ def add(chemical, index = None):
     if chemical[0] == 't': #if adding one test tube into another
         emptiedindex = int(chemical[-1]) - 1
         tubes[index]['contents'].extend(tubes[emptiedindex]['contents'])
+        tubes[index]['colour'] = tubes[emptiedindex]['colour']
         currenttubeindex = index
-        if not (tubes[emptiedindex]['contents'] == ['OS'] or tubes[emptiedindex]['contents'] == ['SE'] or \
-           tubes[emptiedindex]['contents'] == ['WE']):
+        ch = raw_input('Pour all or only some of the contents into the test tube? Press a for all and s for only little: ')
+        if ch == 'a':
             tubes[emptiedindex] = new_tube()
     else:
         if not (chemical in reagents or chemical in acids or chemical in misc or chemical == 'salt'): return 'error'
         tubes[index]['contents'].append(chemical)
         currenttubeindex = index
+
+    #tests
     solubility_test()
     prelim_tests_anion()
+    carbonate_confirm_tests()
+    sulphide_confirm_tests()
+    sulphite_confirm_tests()
     phosphate_confirm_tests()
     sulphate_confirm_tests()
     prelim_tests_cation()
@@ -367,7 +377,7 @@ def carbonate_confirm_tests():
     elif sorted(tubes[i]['contents']) == ['CaCl2', "WE"]:
         print '\nWhite precipitate formed'
         tubes[i]['colour'] = 'white'
-    elif sorted(tubes[i]['contents']) == ['phenol', "WE"]:
+    elif sorted(tubes[i]['contents']) == ["WE", 'phenol']:
         print '\nSolution turns pink'
         tubes[i]['colour'] = 'pink'
 
@@ -382,6 +392,30 @@ def sulphide_confirm_tests():
     elif tubes[i]['contents'][0] in ('WE', 'SE') and tubes[i]['contents'][1:] == ['NaOH', 'SNP']:
         print '\nPurple colour obtained'
         tubes[i]['colour'] = 'purple'
+
+sulphite_boilCO2_flag = False
+
+def sulphite_confirm_tests():
+    global tubes, sulphite_boilCO2_flag
+    i = currenttubeindex
+    if salt[1]['formula'] != 'SO3': return
+    if len(tubes[i]['contents']) <= 1: return
+    if tubes[i]['contents'][0] in ('SE', 'WE') and tubes[i]['contents'][1] == 'K2Cr2O7':
+        print 'Solution turns green'
+        tubes[i]['colour'] = 'Green'
+    if tubes[i]['contents'][0] in ('SE', 'WE') and tubes[i]['contents'][1:] == ['CH3COOH'] and tubes[i]['heated']:
+        sulphite_boilCO2_flag = True
+    if not sulphite_boilCO2_flag: return
+    if tubes[i]['contents'][0] in ('SE', 'WE') and tubes[i]['contents'][1:] == ['CH3COOH', 'BaCl2'] and tubes[i]['heated']:
+        print 'White precipitate formed'
+        tubes[i]['colour'] = 'white'
+    elif tubes[i]['contents'][0] in ('SE','WE') and tubes[i]['contents'][1:] == ['CH3COOH','BaCl2','dil_HCl'] and tubes[i]['colour']:
+        print 'Precipitate dissolves. Colourless gas with smell of burning suplhur evolved.'
+        tubes[i]['colour'] = None
+        tubes[i]['gas'] = 'SO2'
+    elif tubes[i]['contents'][0] in ('SE', 'WE') and tubes[i]['contents'][1:] == ['CH3COOH', 'BaCl2', 'KMnO4'] and tubes[i]['colour']:
+        print 'Pink colour disappears'
+        tubes[i]['colour'] = 'white'
 
 def sulphate_confirm_tests():
     global tubes
@@ -475,7 +509,7 @@ nitrate = {'name':'nitrate', 'type':'anion', 'formula':'NO3', 'valency':1, 'odou
 sulphate = {'name':'sulphate', 'type':'anion', 'formula':'SO4', 'valency':2, 'odour':None}
 phosphate = {'name':'phosphate', 'type':'anion', 'formula':'PO4', 'valency':3, 'odour':None}
 #anions = [sulphide, carbonate, nitrite, sulphite, chloride, bromide, iodide, acetate, nitrate, sulphate, phosphate]
-anions = [phosphate]
+anions = [sulphite]
 #cations
 ammonium = {'name':'Ammonium', 'type':'cation', 'formula':'NH4', 'valency':1, 'odour':'Ammoniacal', 'flame':None, 'colour':None} 
 lead = {'name':'Lead', 'type':'cation', 'formula':'Pb', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
