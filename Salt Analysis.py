@@ -28,7 +28,7 @@ All functions:
 
 'add <chemical name> [to <tube>]' :- adds the chemical in the specified test tube. Test tube not specified, then adds to last used test tube. Can add contents of one test tube into the other, specify test tube number rather than chemical name.
 
-'heat [<intensity> [<tube>]] :- heats the mentioned test tube (default test tube is the last used one) with a given intensity (slight heating by default)
+'heat [<intensity>] [<tube>] :- heats the mentioned test tube (default test tube is the last used one) with a given intensity (slight heating by default)
 
 'flame test' :- Carries out flame test on your given salt
 
@@ -96,8 +96,8 @@ reag_list = {'Calcium chloride': 'CaCl2', 'Acidified Potassium dichromate': 'K2C
              'Ammonium carbonate': '(NH4)2CO3', "Nessler's reagent": 'ness', 'Sodium nitroprusside / Na[Fe(CN)5NO]': 'SNP',
              'Sodium Hydroxide': 'NaOH', 'Barium chloride': 'BaCl2', 'Ammonium molybdate / (NH4)2MoO4': 'molybdate',
              'Magnesium sulphate': 'MgSO4', 'Ammonium acetate': 'CH3COONH4', 'Ammonium hydroxide': 'NH4OH',
-             'Lead acetate': '(CH3COO)2Pb', 'Lime water / Ca(OH)2': 'lime', 'Hydrogen Sulphide': 'H2S',
-             'Acidified Potassium manganate':'KMnO4'}
+             'Lead acetate': '(CH3COO)2Pb', 'Lime water / Ca(OH)2': 'lime', 'Hydrogen sulphide': 'H2S',
+             'Acidified Potassium manganate':'KMnO4', 'Starch':'starch', 'Potassium iodide':'KI', 'Ferrous sulphate':'FeSO4'}
 
 acids = acids_list.values()
 acids.sort()
@@ -157,6 +157,7 @@ def newSalt():
         else: return
     salt[0] = choice(cations)
     salt[1] = choice(anions)
+    for i in (0, 1): salt[i]['confirm'] = False
     print
     print 'A salt has been chosen'
     if salt[0]['colour'] != None: print 'Colour -' , salt[0]['colour']
@@ -176,9 +177,10 @@ def guess(ion, name):
     if saltflag[index] == True:
         print 'You have already guessed the %s, try to guess the other ion.'%(ion)
         return
+    if not salt[index]['confirm']: print 'You haven\'t done a confirmatory test. Please do so before reporting an answer.'
     if index == 0 and name == 'Fe':
         valence = raw_input('Which Fe ion? The ion with valency 2 or valency 3? ')
-        if valence == salt[0]['valency'] and name == salt[0]['name']:
+        if valence == salt[0]['valency'] and name == salt[0]['formula']:
             print 'CORRECT! The cation was %s, with formula %s%d+' % (salt[index]['name'], salt[index]['formula'], valence)
             saltflag[index] = True
         else:
@@ -229,9 +231,14 @@ def heat(code):
         index = currenttubeindex
         heat = 1
     elif len(code) == 2:
-        index = currenttubeindex
-        heat = 2 if code[-1] == 'strongly' else 1
-    elif len(code) == 3 and code[2][0] == 't' and code[1] in ('slightly', 'strongly'):
+        if code[1][0] == 't':
+            index = int(code[1][1]) - 1
+            heat = 1
+        else:
+            index = currenttubeindex
+            heat = 2 if code[-1] == 'strongly' else 1
+    elif len(code) == 3 and ((code[2][0] == 't' and code[1] in ('slightly', 'strongly')) or \
+                             (code[1][0] == 't' and code[2] in ('slightly', 'strongly'))):
         index = int(code[1][1]) - 1
         heat = 2 if code[-1] == 'strongly' else 1
     else:
@@ -253,7 +260,7 @@ def pass_gas(gas, index):  #Keep updating for confirmatory tests
     if gas == 'CO2' and tubes[index]['contents'] == ['lime']:
         print '\nSolution turned white. Becomes colourless with excess.'
         tubes[index]['colour'] = 'white'
-    elif (gas == 'NO3' or gas == 'NO2') and tubes[index]['contents'] == ['FeSO4']:
+    elif gas == 'NO' and tubes[index]['contents'] == ['FeSO4']:
         print '\nSolution turns black.'
         tubes[index]['colour'] = 'black'
     currenttubeindex = index
@@ -302,6 +309,7 @@ def add(chemical, index = None):
     carbonate_confirm_tests()
     sulphide_confirm_tests()
     sulphite_confirm_tests()
+    nitrite_confirm_tests()
     phosphate_confirm_tests()
     sulphate_confirm_tests()
     prelim_tests_cation()
@@ -373,12 +381,15 @@ def carbonate_confirm_tests():
     if not (salt[0]['formula'] == 'NH4' and salt[1]['formula'] == ['CO3']): return
     if sorted(tubes[i]['contents']) == ['MgSO4', "WE"]:
         print '\nWhite precipitate formed'
+        salt[1]['confirm'] = True
         tubes[i]['colour'] = 'white'
     elif sorted(tubes[i]['contents']) == ['CaCl2', "WE"]:
         print '\nWhite precipitate formed'
+        salt[1]['confirm'] = True
         tubes[i]['colour'] = 'white'
     elif sorted(tubes[i]['contents']) == ["WE", 'phenol']:
         print '\nSolution turns pink'
+        salt[1]['confirm'] = True
         tubes[i]['colour'] = 'pink'
 
 def sulphide_confirm_tests():
@@ -388,9 +399,11 @@ def sulphide_confirm_tests():
     if len(tubes[i]['contents']) <= 1: return
     if tubes[i]['contents'][0] in ('WE', 'SE') and tubes[i]['contents'][1:] == ['CH3COOH', '(CH3COO)2Pb']:
         print '\nBlack precipitate formed'
+        salt[1]['confirm'] = True
         tubes[i]['colour'] = 'black'
     elif tubes[i]['contents'][0] in ('WE', 'SE') and tubes[i]['contents'][1:] == ['NaOH', 'SNP']:
         print '\nPurple colour obtained'
+        salt[1]['confirm'] = True
         tubes[i]['colour'] = 'purple'
 
 sulphite_boilCO2_flag = False
@@ -401,38 +414,57 @@ def sulphite_confirm_tests():
     if salt[1]['formula'] != 'SO3': return
     if len(tubes[i]['contents']) <= 1: return
     if tubes[i]['contents'][0] in ('SE', 'WE') and tubes[i]['contents'][1] == 'K2Cr2O7':
-        print 'Solution turns green'
+        print '\nSolution turns green'
+        salt[1]['confirm'] = True
         tubes[i]['colour'] = 'Green'
     if tubes[i]['contents'][0] in ('SE', 'WE') and tubes[i]['contents'][1:] == ['CH3COOH'] and tubes[i]['heated']:
         sulphite_boilCO2_flag = True
     if not sulphite_boilCO2_flag: return
     if tubes[i]['contents'][0] in ('SE', 'WE') and tubes[i]['contents'][1:] == ['CH3COOH', 'BaCl2'] and tubes[i]['heated']:
-        print 'White precipitate formed'
+        print '\nWhite precipitate formed'
+        salt[1]['confirm'] = True
         tubes[i]['colour'] = 'white'
     elif tubes[i]['contents'][0] in ('SE','WE') and tubes[i]['contents'][1:] == ['CH3COOH','BaCl2','dil_HCl'] and tubes[i]['colour']:
-        print 'Precipitate dissolves. Colourless gas with smell of burning suplhur evolved.'
+        print '\nPrecipitate dissolves. Colourless gas with smell of burning suplhur evolved.'
         tubes[i]['colour'] = None
+        salt[1]['confirm'] = True
         tubes[i]['gas'] = 'SO2'
     elif tubes[i]['contents'][0] in ('SE', 'WE') and tubes[i]['contents'][1:] == ['CH3COOH', 'BaCl2', 'KMnO4'] and tubes[i]['colour']:
-        print 'Pink colour disappears'
+        print '\nPink colour disappears'
+        salt[1]['confirm'] = True
         tubes[i]['colour'] = 'white'
+
+def nitrite_confirm_tests():
+    global tubes
+    i = currenttubeindex
+    if salt[1]['formula'] != 'NO2' : return
+    if tubes[i]['contents'][0] in ('WE', 'SE') and tubes[i]['contents'][1:] == ['dil_H2SO4', 'KI', 'starch']:
+        print '\nSolution turns blue-black'
+        salt[1]['confirm'] = True
+        tubes[i]['colour'] = 'blue-black'
+    if tubes[i]['contents'][0] in ('WE', 'SE', 'salt') and tubes[i]['contents'][1:] == ['dil_H2SO4', 'KMnO4']:
+        print '\nPink colour is discharged'
+        salt[1]['confirm'] = True
 
 def sulphate_confirm_tests():
     global tubes
     i = currenttubeindex
-    if salt[1]['formula'] != 'SO4': return
+    if salt[1]['formula'] not in ('SO4', 'PO4') : return  #phosphate answers sulphate tests (for some reason)
     if tubes[i]['contents'] == ['WE', 'BaCl2'] or tubes[i]['contents'] == ['SE', 'BaCl2'] or \
        tubes[i]['contents'] == ['WE', 'dil_HCl', 'BaCl2'] or tubes[i]['contents'] == ['SE', 'dil_HCl', 'BaCl2']:
         print '\nWhite precipitate formed'
+        salt[1]['confirm'] = True
         tubes[i]['colour'] = 'white'
     elif tubes[i]['contents'] == ['WE', '(CH3COO)2Pb'] or tubes[i]['contents'] == ['SE', '(CH3COO)2Pb'] or \
          tubes[i]['contents'] == ['WE', 'CH3COOH', '(CH3COO)2Pb'] or tubes[i]['contents'] == ['SE', 'CH3COOH', '(CH3COO)2Pb']:
         print '\nWhite precipitate formed'
+        salt[1]['confirm'] = True
         tubes[i]['colour'] = 'white'
     elif (tubes[i]['contents'] == ['WE', '(CH3COO)2Pb', 'CH3COONH4'] or tubes[i]['contents'] == ['SE', '(CH3COO)2Pb', 'CH3COONH4'] or \
          tubes[i]['contents'] == ['WE', 'CH3COOH', '(CH3COO)2Pb', 'CH3COONH4'] or \
          tubes[i]['contents'] == ['SE', 'CH3COOH', '(CH3COO)2Pb', 'CH3COONH4']) and tubes[i]['colour'] == 'white':
         print '\nWhite precipitate dissolves'
+        salt[1]['confirm'] = True
         tubes[i]['colour'] = None
 
 phosphate_molybdate_test_heated_flag = False
@@ -444,6 +476,7 @@ def phosphate_confirm_tests():
     if tubes[i]['contents'] == ['WE', 'magnesia'] or tubes[i]['contents'] == ['SE', 'magnesia'] or \
        tubes[i]['contents'] == ['WE', 'dil_HCl', 'magnesia'] or tubes[i]['contents'] == ['SE', 'dil_HCl', 'magnesia']:
         print '\nWhite precipitate formed'
+        salt[1]['confirm'] = True
         tubes[i]['colour'] = 'white'
     if tubes[i]['contents'][0] in ('salt', 'WE', 'SE') and ((len(tubes[i]['contents']) == 2 and tubes[i]['contents'][1] == 'conc_HNO3') or \
          (len(tubes[i]['contents']) == 3 and tubes[i]['contents'][1] in acids and tubes[i]['contents'][2] == 'conc_HNO3')) and \
@@ -451,7 +484,8 @@ def phosphate_confirm_tests():
         phosphate_molybdate_test_heated_flag = True
     elif phosphate_molybdate_test_heated_flag and tubes[i]['contents'][-1] == 'molybdate':
         print '\nCanary yellow precipitate formed'
-        tubes[i]['colour'] == 'Canary yellow'       
+        tubes[i]['colour'] == 'Canary yellow'  
+        salt[1]['confirm'] = True     
 
 def prelim_tests_cation():
     global tubes
@@ -481,9 +515,11 @@ def group0_confirm_tests():
     i = currenttubeindex
     if tubes[i]['contents'] == ['OS', 'NaOH']:  
         print '\nColourless gas with pungent smell evolved.'
+        salt[0]['confirm'] = True
         tubes[i]['gas'] = 'NH3'
     elif tubes[i]['contents'] == ['OS', 'NaOH', 'ness']:
         print '\nRed-brown precipitate formed'
+        salt[0]['confirm'] = True
         tubes[i]['colour'] = 'Red-brown'
 
             
@@ -508,8 +544,8 @@ acetate = {'name':'acetate', 'type':'anion', 'formula':'CH3COO', 'valency':1, 'o
 nitrate = {'name':'nitrate', 'type':'anion', 'formula':'NO3', 'valency':1, 'odour':None}
 sulphate = {'name':'sulphate', 'type':'anion', 'formula':'SO4', 'valency':2, 'odour':None}
 phosphate = {'name':'phosphate', 'type':'anion', 'formula':'PO4', 'valency':3, 'odour':None}
-#anions = [sulphide, carbonate, nitrite, sulphite, chloride, bromide, iodide, acetate, nitrate, sulphate, phosphate]
-anions = [sulphite]
+anions = [sulphide, carbonate, nitrite, sulphite, chloride, bromide, iodide, acetate, nitrate, sulphate, phosphate]
+#anions = [nitrite]
 #cations
 ammonium = {'name':'Ammonium', 'type':'cation', 'formula':'NH4', 'valency':1, 'odour':'Ammoniacal', 'flame':None, 'colour':None} 
 lead = {'name':'Lead', 'type':'cation', 'formula':'Pb', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
@@ -539,7 +575,7 @@ while True:
     if len(code) == 0:
         codeError()
         continue
-    
+
     if code[0] == 'help':
         if len(code) == 1:
             print helpMsg
@@ -560,7 +596,17 @@ while True:
         else: codeError()
         
     if salt == [None, None]: continue
-    
+
+    errorflag = False
+
+    for word in code:
+        if 't' == word[0] and len(word) == 2 and word[1].isdigit():
+            if int(word[-1]) > len(tubes):
+                codeError()
+                errorflag = True
+                break
+
+    if errorflag: continue
     if code[0] == 'add':
         if len(code) == 4 and code[2] == 'to':
             errorstring = add(code[1], int(code[-1][-1]) - 1)
