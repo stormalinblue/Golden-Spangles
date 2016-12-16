@@ -97,7 +97,8 @@ reag_list = {'Calcium chloride': 'CaCl2', 'Acidified Potassium dichromate': 'K2C
              'Sodium Hydroxide': 'NaOH', 'Barium chloride': 'BaCl2', 'Ammonium molybdate / (NH4)2MoO4': 'molybdate',
              'Magnesium sulphate': 'MgSO4', 'Ammonium acetate': 'CH3COONH4', 'Ammonium hydroxide': 'NH4OH',
              'Lead acetate': '(CH3COO)2Pb', 'Lime water / Ca(OH)2': 'lime', 'Hydrogen sulphide': 'H2S',
-             'Acidified Potassium manganate':'KMnO4', 'Starch':'starch', 'Potassium iodide':'KI', 'Ferrous sulphate':'FeSO4'}
+             'Acidified Potassium manganate':'KMnO4', 'Starch':'starch', 'Potassium iodide':'KI', 'Ferrous sulphate':'FeSO4',
+             'Manganese peroxide':'MnO2', 'Silver nitrate':'AgNO3'}
 
 acids = acids_list.values()
 acids.sort()
@@ -253,6 +254,7 @@ def heat(code):
     #tests
     prelim_tests_anion()
     sulphite_confirm_tests()
+    chloride_confirm_tests()
     phosphate_confirm_tests()
     
 def pass_gas(gas, index):  #Keep updating for confirmatory tests
@@ -263,6 +265,9 @@ def pass_gas(gas, index):  #Keep updating for confirmatory tests
     elif gas == 'NO' and tubes[index]['contents'] == ['FeSO4']:
         print '\nSolution turns black.'
         tubes[index]['colour'] = 'black'
+    elif gas == 'CrO2Cl2' and tubes[index]['contents'] == ['NaOH']:
+        tubes[index]['colour'] = 'yellow'
+        print 'Very slight yellow tinge to the solution'
     currenttubeindex = index
 
 def introduce(chemical, index = None):
@@ -299,9 +304,12 @@ def add(chemical, index = None):
         if ch == 'a':
             tubes[emptiedindex] = new_tube()
     else:
-        if not (chemical in reagents or chemical in acids or chemical in misc or chemical == 'salt'): return 'error'
-        tubes[index]['contents'].append(chemical)
-        currenttubeindex = index
+        if not (chemical in reagents or chemical in acids or chemical in misc or chemical == 'salt'):
+            if not chemical in ('WE', 'SE'):
+                print 'Sorry. This chemical cannot be found'
+        else:
+            tubes[index]['contents'].append(chemical)
+            currenttubeindex = index
 
     #tests
     solubility_test()
@@ -310,6 +318,7 @@ def add(chemical, index = None):
     sulphide_confirm_tests()
     sulphite_confirm_tests()
     nitrite_confirm_tests()
+    chloride_confirm_tests()
     phosphate_confirm_tests()
     sulphate_confirm_tests()
     prelim_tests_cation()
@@ -446,6 +455,32 @@ def nitrite_confirm_tests():
         print '\nPink colour is discharged'
         salt[1]['confirm'] = True
 
+chromyl_chloride_test_stage = 0
+
+def chloride_confirm_tests():
+    global tubes, chromyl_chloride_test_stage
+    i = currenttubeindex
+    if salt[1]['formula'] != 'Cl' or len(tubes[i]['contents']) < 2: return
+    if tubes[i]['contents'] == ['salt', 'MnO2', 'conc_H2SO4']:
+        print 'Greenish yellow gas evolved'
+        tubes[i]['gas'] = 'Cl2'
+    if tubes[i]['contents'][0] in ('WE', 'SE') and 'HNO3' in tubes[i]['contents'][1] and tubes[i]['contents'][-1] == 'AgNO3':
+        print 'Curdy white precipitate formed'
+        tubes[i]['colour'] = 'curdy-white'
+    if tubes[i]['contents'][0] in ('WE', 'SE') and 'HNO3' in tubes[i]['contents'][1] and tubes[i]['contents'][-2:] == ['AgNO3', 'NH4OH']:
+        print 'Precipiate dissolves'
+        tubes[i]['colour'] = None
+    if chromyl_chloride_test_stage == 0 and tubes[i]['contents'] == ['salt', 'K2Cr2O7', 'conc_H2SO4']:
+        chromyl_chloride_test_stage = 1
+    elif chromyl_chloride_test_stage == 1 and tubes[i]['contents'] == ['salt', 'K2Cr2O7', 'conc_H2SO4'] and tubes[i]['heated'] == 2:
+        chromyl_chloride_test_stage = 2
+        print 'Red vapours evolved'
+        tubes[i]['gas'] = 'CrO2Cl2'
+    elif tubes[i]['contents'] == ['NaOH', 'CH3COOH', '(CH3COO)2Pb'] and tubes[i]['colour'] == 'yellow':
+        print 'Yellow precipitate got'
+        tubes[i]['colour'] = 'yellow'
+    
+
 def sulphate_confirm_tests():
     global tubes
     i = currenttubeindex
@@ -544,8 +579,8 @@ acetate = {'name':'acetate', 'type':'anion', 'formula':'CH3COO', 'valency':1, 'o
 nitrate = {'name':'nitrate', 'type':'anion', 'formula':'NO3', 'valency':1, 'odour':None}
 sulphate = {'name':'sulphate', 'type':'anion', 'formula':'SO4', 'valency':2, 'odour':None}
 phosphate = {'name':'phosphate', 'type':'anion', 'formula':'PO4', 'valency':3, 'odour':None}
-anions = [sulphide, carbonate, nitrite, sulphite, chloride, bromide, iodide, acetate, nitrate, sulphate, phosphate]
-#anions = [nitrite]
+#anions = [sulphide, carbonate, nitrite, sulphite, chloride, bromide, iodide, acetate, nitrate, sulphate, phosphate]
+anions = [chloride]
 #cations
 ammonium = {'name':'Ammonium', 'type':'cation', 'formula':'NH4', 'valency':1, 'odour':'Ammoniacal', 'flame':None, 'colour':None} 
 lead = {'name':'Lead', 'type':'cation', 'formula':'Pb', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
