@@ -89,7 +89,8 @@ acids_list = {'Diluted Hydrochloric acid': 'dil_HCl', 'Concentrated Nitric acid'
               'Concentrated Sulphuric acid': 'conc_H2SO4', 'Diluted Sulphuric acid': 'dil_H2SO4',
               'Concentrated Hydrochloric acid': 'conc_HCl', 'Diluted Nitric acid': 'dil_HNO3', 'Acetic Acid': 'CH3COOH'}
 misc_list = {'Moist Blue Litmus Paper': 'MBLpaper', 'Acidified Dichromate Paper': 'ADpaper', 'Moist Starch Iodide Paper': 'MSIpaper',
-             'Moist Starch Paper': 'MSpaper', 'Water': 'water', 'Paper Pellets': 'paper', 'Lead Acetate paper': 'LApaper'}
+             'Moist Starch Paper': 'MSpaper', 'Water': 'water', 'Paper Pellets': 'paper', 'Lead Acetate paper': 'LApaper',
+             'Copper turnings':'Cu_turning'}
 # Add more reagents specific to certain tests for new cations/anions
 reag_list = {'Calcium chloride': 'CaCl2', 'Acidified Potassium dichromate': 'K2Cr2O7', 'Ammonium chloride': 'NH4Cl',
              'Disodium hydrogen phosphate': 'Na2HPO4', 'Phenolphthalein': 'phenol', 'Magnesia mixture': 'magnesia',
@@ -260,6 +261,7 @@ def heat(code):
     chloride_confirm_tests()
     bromide_confirm_tests()
     iodide_confirm_tests()
+    nitrate_confirm_tests()
     acetate_confirm_tests()
     phosphate_confirm_tests()
     
@@ -309,6 +311,7 @@ def add(chemical, index = None):
         ch = raw_input('Pour all or only some of the contents into the test tube? Press a for all and s for only little: ')
         if ch == 'a':
             tubes[emptiedindex] = new_tube()
+            currenttubeindex = emptiedindex
     else:
         if not (chemical in reagents or chemical in acids or chemical in misc or chemical == 'salt'):
             if not chemical in ('WE', 'SE'):
@@ -327,6 +330,7 @@ def add(chemical, index = None):
     chloride_confirm_tests()
     bromide_confirm_tests()
     iodide_confirm_tests()
+    nitrate_confirm_tests()
     acetate_confirm_tests()
     phosphate_confirm_tests()
     sulphate_confirm_tests()
@@ -345,6 +349,7 @@ def flame_test():
 
 def solubility_test():
     i = currenttubeindex
+    if len(tubes[i]['contents']) != 2: return
     if sorted(tubes[i]['contents']) == sorted(['salt', 'water']): #test for solubility in water
         #ammonium carbonate only soluble carbonate (for some reason). Refer to net
         if salt[1]['formula'] == 'CO3' and salt[0]['formula'] != 'NH4': print '\nSalt insoluble in water'
@@ -473,15 +478,15 @@ def chloride_confirm_tests():
     i = currenttubeindex
     if salt[1]['formula'] != 'Cl' or len(tubes[i]['contents']) < 2: return
     if tubes[i]['contents'] == ['salt', 'MnO2', 'conc_H2SO4']:
-        print 'Greenish yellow gas evolved'
+        print '\nGreenish yellow gas evolved'
         tubes[i]['gas'] = 'Cl2'
         salt[1]['confirm'] = True
     if tubes[i]['contents'][0] in ('WE', 'SE') and 'HNO3' in tubes[i]['contents'][1] and tubes[i]['contents'][-1] == 'AgNO3':
-        print 'Curdy white precipitate formed'
+        print '\nCurdy white precipitate formed'
         tubes[i]['colour'] = 'curdy-white'
         salt[1]['confirm'] = True
     if tubes[i]['contents'][0] in ('WE', 'SE') and 'HNO3' in tubes[i]['contents'][1] and tubes[i]['contents'][-2:] == ['AgNO3', 'NH4OH']:
-        print 'Precipiate dissolves'
+        print '\nPrecipiate dissolves'
         salt[1]['confirm'] = True
         tubes[i]['colour'] = None
     #chromyl chloride test:
@@ -489,12 +494,12 @@ def chloride_confirm_tests():
         chromyl_chloride_test_stage = 1
     elif chromyl_chloride_test_stage == 1 and tubes[i]['contents'] == ['salt', 'K2Cr2O7', 'conc_H2SO4'] and tubes[i]['heated'] == 2:
         chromyl_chloride_test_stage = 2
-        print 'Red vapours evolved'
+        print '\nRed vapours evolved'
         salt[1]['confirm'] = True
         chromyl_chloride_test_stage = 0
         tubes[i]['gas'] = 'CrO2Cl2'
     elif tubes[i]['contents'] == ['NaOH', 'CH3COOH', '(CH3COO)2Pb'] and tubes[i]['colour'] == 'yellow':
-        print 'Yellow precipitate got'
+        print '\nYellow precipitate got'
         tubes[i]['colour'] = 'yellow'
         salt[1]['confirm'] = True
 
@@ -507,19 +512,19 @@ def bromide_confirm_tests():
         bromide_forheating_flag = True
     elif bromide_forheating_flag and tubes[i]['heated']:
         bromide_forheating_flag = False
-        print 'Reddish brown vapours formed'
+        print '\nReddish brown vapours formed'
         salt[1]['confirm'] = True
         tubes[i]['gas'] = 'Br2'
     if tubes[i]['contents'][0] in ('WE', 'SE') and tubes[i]['contents'][1:] == ['Cl_water', 'CCl4']:
-        print 'Orange-brown layer formed'
+        print '\nOrange-brown layer formed'
         salt[1]['confirm'] = True
         tubes[i]['colour'] = 'orange'
     if tubes[i]['contents'][0] in ('WE', 'SE') and tubes[i]['contents'][1:] == ['dil_HNO3', 'AgNO3']:
-        print 'Pale yellow precipitate formed'
+        print '\nPale yellow precipitate formed'
         salt[1]['confirm'] = True
         tubes[i]['colour'] = 'pale-yellow'
     elif tubes[i]['contents'][0] in ('WE', 'SE') and tubes[i]['contents'][1:] == ['dil_HNO3', 'AgNO3', 'NH4OH']:
-        print 'Precipiate partly dissolves'
+        print '\nPrecipiate partly dissolves'
         salt[1]['confirm'] = True
 
 iodide_forheating_flag = False
@@ -531,17 +536,42 @@ def iodide_confirm_tests():
         iodide_forheating_flag = True
     elif iodide_forheating_flag and tubes[i]['heated']:
         iodide_forheating_flag = False
-        print 'Violet vapours formed'
+        print '\nViolet vapours formed'
         salt[1]['confirm'] = True
         tubes[i]['gas'] = 'I2'
     if tubes[i]['contents'][0] in ('WE', 'SE') and tubes[i]['contents'][1:] == ['Cl_water', 'CCl4']:
-        print 'Pink layer formed'
+        print '\nPink layer formed'
         salt[1]['confirm'] = True
         tubes[i]['colour'] = 'pink'
     if tubes[i]['contents'][0] in ('WE', 'SE') and tubes[i]['contents'][1:] == ['dil_HNO3', 'AgNO3']:
-        print 'Yellow precipitate formed'
+        print '\nYellow precipitate formed'
         salt[1]['confirm'] = True
         tubes[i]['colour'] = 'yellow'
+
+nitrate_pelletstest_flag = 0
+def nitrate_confirm_tests():
+    global tubes, nitrate_pelletstest_flag
+    i = currenttubeindex
+    if salt[1]['formula'] != 'NO3' or len(tubes[i]['contents']) < 2: return
+    if tubes[i]['contents'] == ['salt', 'conc_H2SO4'] and not tubes[i]['heated']: nitrate_pelletstest_flag = 1
+    elif nitrate_pelletstest_flag == 1 and tubes[i]['heated']: nitrate_pelletstest_flag = 2
+    elif nitrate_pelletstest_flag == 2:
+        if tubes[i]['contents'][-1] == 'Cu_turning':
+            print '\nSolution turns green. Profuse brown fumes evolved'
+            tubes[i]['gas'] = 'NO'
+            nitrate_pelletstest_flag = 0
+            salt[1]['confirm'] = True
+            tubes[i]['colour'] = 'green'
+        elif tubes[i]['contents'][-1] == 'paper':
+            print '\nProfuse brown fumes evolved'
+            nitrate_pelletstest_flag = 0
+            salt[1]['confirm'] = True
+            tubes[i]['gas'] = 'NO'
+    #Brown-ring test, must be improved
+    if tubes[i]['contents'][0] in ('WE', 'SE') and tubes[i]['contents'][1:] == ['dil_H2SO4', 'FeSO4', 'conc_H2SO4']: 
+        print 'Brown ring formed'
+        tubes[i]['colour'] = 'green, with a brown ring'
+        salt[1]['confirm'] = True
 
 acetate_stages = 0
 def acetate_confirm_tests():
@@ -657,8 +687,8 @@ acetate = {'name':'acetate', 'type':'anion', 'formula':'CH3COO', 'valency':1, 'o
 nitrate = {'name':'nitrate', 'type':'anion', 'formula':'NO3', 'valency':1, 'odour':None}
 sulphate = {'name':'sulphate', 'type':'anion', 'formula':'SO4', 'valency':2, 'odour':None}
 phosphate = {'name':'phosphate', 'type':'anion', 'formula':'PO4', 'valency':3, 'odour':None}
-#anions = [sulphide, carbonate, nitrite, sulphite, chloride, bromide, iodide, acetate, nitrate, sulphate, phosphate]
-anions = [acetate]
+anions = [sulphide, carbonate, nitrite, sulphite, chloride, bromide, iodide, acetate, nitrate, sulphate, phosphate]
+
 #cations
 ammonium = {'name':'Ammonium', 'type':'cation', 'formula':'NH4', 'valency':1, 'odour':'Ammoniacal', 'flame':None, 'colour':None} 
 lead = {'name':'Lead', 'type':'cation', 'formula':'Pb', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
