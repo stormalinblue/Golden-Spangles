@@ -98,7 +98,7 @@ reag_list = {'Calcium chloride': 'CaCl2', 'Acidified Potassium dichromate': 'K2C
              'Magnesium sulphate': 'MgSO4', 'Ammonium acetate': 'CH3COONH4', 'Ammonium hydroxide': 'NH4OH',
              'Lead acetate': '(CH3COO)2Pb', 'Lime water / Ca(OH)2': 'lime', 'Hydrogen sulphide': 'H2S',
              'Acidified Potassium manganate':'KMnO4', 'Starch':'starch', 'Potassium iodide':'KI', 'Ferrous sulphate':'FeSO4',
-             'Manganese peroxide':'MnO2', 'Silver nitrate':'AgNO3'}
+             'Manganese peroxide':'MnO2', 'Silver nitrate':'AgNO3', 'Carbon tetrachloride':'CCl4', 'Chlorine water':'Cl_water'}
 
 acids = acids_list.values()
 acids.sort()
@@ -178,7 +178,9 @@ def guess(ion, name):
     if saltflag[index] == True:
         print 'You have already guessed the %s, try to guess the other ion.'%(ion)
         return
-    if not salt[index]['confirm']: print 'You haven\'t done a confirmatory test. Please do so before reporting an answer.'
+    if not salt[index]['confirm']:
+        print 'You haven\'t done a confirmatory test. Please do so before reporting an answer.'
+        return
     if index == 0 and name == 'Fe':
         valence = raw_input('Which Fe ion? The ion with valency 2 or valency 3? ')
         if valence == salt[0]['valency'] and name == salt[0]['formula']:
@@ -255,6 +257,7 @@ def heat(code):
     prelim_tests_anion()
     sulphite_confirm_tests()
     chloride_confirm_tests()
+    bromide_confirm_tests()
     phosphate_confirm_tests()
     
 def pass_gas(gas, index):  #Keep updating for confirmatory tests
@@ -279,7 +282,7 @@ def introduce(chemical, index = None):
         print '\nAcidified dichromate paper turns green'
     elif tubes[index]['gas'] == 'HCl' and chemical == 'NH4OH':
         print '\nDense white fumes formed'
-    elif tubes[index]['gas'] == 'Br2' and chemical == 'MSPaper':
+    elif tubes[index]['gas'] == 'Br2' and chemical == 'MSpaper':
         print '\nThe moist starch paper turns yellow'
     elif tubes[index]['gas'] == 'Br2' and chemical == 'MSIpaper':
         print '\nThe moist starch iodide paper turns blue'
@@ -319,6 +322,7 @@ def add(chemical, index = None):
     sulphite_confirm_tests()
     nitrite_confirm_tests()
     chloride_confirm_tests()
+    bromide_confirm_tests()
     phosphate_confirm_tests()
     sulphate_confirm_tests()
     prelim_tests_cation()
@@ -437,10 +441,12 @@ def sulphite_confirm_tests():
         print '\nPrecipitate dissolves. Colourless gas with smell of burning suplhur evolved.'
         tubes[i]['colour'] = None
         salt[1]['confirm'] = True
+        sulphite_boilCO2_flag = False
         tubes[i]['gas'] = 'SO2'
     elif tubes[i]['contents'][0] in ('SE', 'WE') and tubes[i]['contents'][1:] == ['CH3COOH', 'BaCl2', 'KMnO4'] and tubes[i]['colour']:
         print '\nPink colour disappears'
         salt[1]['confirm'] = True
+        sulphite_boilCO2_flag = False
         tubes[i]['colour'] = 'white'
 
 def nitrite_confirm_tests():
@@ -464,22 +470,52 @@ def chloride_confirm_tests():
     if tubes[i]['contents'] == ['salt', 'MnO2', 'conc_H2SO4']:
         print 'Greenish yellow gas evolved'
         tubes[i]['gas'] = 'Cl2'
+        salt[1]['confirm'] = True
     if tubes[i]['contents'][0] in ('WE', 'SE') and 'HNO3' in tubes[i]['contents'][1] and tubes[i]['contents'][-1] == 'AgNO3':
         print 'Curdy white precipitate formed'
         tubes[i]['colour'] = 'curdy-white'
+        salt[1]['confirm'] = True
     if tubes[i]['contents'][0] in ('WE', 'SE') and 'HNO3' in tubes[i]['contents'][1] and tubes[i]['contents'][-2:] == ['AgNO3', 'NH4OH']:
         print 'Precipiate dissolves'
+        salt[1]['confirm'] = True
         tubes[i]['colour'] = None
+    #chromyl chloride test:
     if chromyl_chloride_test_stage == 0 and tubes[i]['contents'] == ['salt', 'K2Cr2O7', 'conc_H2SO4']:
         chromyl_chloride_test_stage = 1
     elif chromyl_chloride_test_stage == 1 and tubes[i]['contents'] == ['salt', 'K2Cr2O7', 'conc_H2SO4'] and tubes[i]['heated'] == 2:
         chromyl_chloride_test_stage = 2
         print 'Red vapours evolved'
+        salt[1]['confirm'] = True
+        chromyl_chloride_test_stage = 0
         tubes[i]['gas'] = 'CrO2Cl2'
     elif tubes[i]['contents'] == ['NaOH', 'CH3COOH', '(CH3COO)2Pb'] and tubes[i]['colour'] == 'yellow':
         print 'Yellow precipitate got'
         tubes[i]['colour'] = 'yellow'
-    
+        salt[1]['confirm'] = True
+
+bromide_forheating_flag = False
+def bromide_confirm_tests():
+    global tubes, bromide_forheating_flag
+    i = currenttubeindex
+    if salt[1]['formula'] != 'Br' or len(tubes[i]['contents']) < 2: return
+    if not bromide_forheating_flag and tubes[i]['contents'] == ['salt', 'MnO2', 'conc_H2SO4'] and not tubes[i]['heated']:
+        bromide_forheating_flag = True
+    elif bromide_forheating_flag and tubes[i]['heated']:
+        bromide_forheating_flag = False
+        print 'Reddish brown vapours formed'
+        salt[1]['confirm'] = True
+        tubes[i]['gas'] = 'Br2'
+    if tubes[i]['contents'][0] in ('WE', 'SE') and tubes[i]['contents'][1:] == ['Cl_water', 'CCl4']:
+        print 'Orange-brown layer formed'
+        salt[1]['confirm'] = True
+        tubes[i]['colour'] = 'orange'
+    if tubes[i]['contents'][0] in ('WE', 'SE') and tubes[i]['contents'][1:] == ['dil_HNO3', 'AgNO3']:
+        print 'Pale yellow precipitate formed'
+        salt[1]['confirm'] = True
+        tubes[i]['colour'] = 'pale-yellow'
+    elif tubes[i]['contents'][0] in ('WE', 'SE') and tubes[i]['contents'][1:] == ['dil_HNO3', 'AgNO3', 'NH4OH']:
+        print 'Precipiate partly dissolves'
+        salt[1]['confirm'] = True
 
 def sulphate_confirm_tests():
     global tubes
@@ -580,7 +616,7 @@ nitrate = {'name':'nitrate', 'type':'anion', 'formula':'NO3', 'valency':1, 'odou
 sulphate = {'name':'sulphate', 'type':'anion', 'formula':'SO4', 'valency':2, 'odour':None}
 phosphate = {'name':'phosphate', 'type':'anion', 'formula':'PO4', 'valency':3, 'odour':None}
 #anions = [sulphide, carbonate, nitrite, sulphite, chloride, bromide, iodide, acetate, nitrate, sulphate, phosphate]
-anions = [chloride]
+anions = [bromide]
 #cations
 ammonium = {'name':'Ammonium', 'type':'cation', 'formula':'NH4', 'valency':1, 'odour':'Ammoniacal', 'flame':None, 'colour':None} 
 lead = {'name':'Lead', 'type':'cation', 'formula':'Pb', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
