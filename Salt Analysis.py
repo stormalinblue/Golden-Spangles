@@ -76,9 +76,11 @@ def printtubes():
                 output += (' ' + str(chemical) + ',')
             output = output[:-1] + '.'
             if tubes[i]['heated']:
-                output += ' It has been heated %s.'%('slightly' if tubes[i]['heated'] == 1 else 'strongly')
+                output += ' It is %s hot.'%('slightly' if tubes[i]['heated'] == 1 else 'very')
+            else:
+                output += ' It is cool.'
             if tubes[i]['colour']:
-                output += ' Its colour is %s.'%(tubes[i]['colour'])
+                output += ' Its colour is %s.'%(tubes[i]['colour'].lower())
             print output
         else:
             print 'Test tube %d is empty'%(i+1)
@@ -100,7 +102,7 @@ reag_list = {'Calcium chloride': 'CaCl2', 'Acidified Potassium dichromate': 'K2C
              'Lead acetate': '(CH3COO)2Pb', 'Lime water / Ca(OH)2': 'lime', 'Hydrogen sulphide': 'H2S',
              'Acidified Potassium manganate':'KMnO4', 'Starch':'starch', 'Potassium iodide':'KI', 'Ferrous sulphate':'FeSO4',
              'Manganese peroxide':'MnO2', 'Silver nitrate':'AgNO3', 'Carbon tetrachloride':'CCl4', 'Chlorine water':'Cl_water',
-             'Ethanol':'C2H5OH', 'Ferric chloride':'FeCl3'}
+             'Ethanol':'C2H5OH', 'Ferric chloride':'FeCl3', 'Potassium chromate':'K2CrO4'}
 
 acids = acids_list.values()
 acids.sort()
@@ -264,6 +266,7 @@ def heat(code):
     nitrate_confirm_tests()
     acetate_confirm_tests()
     phosphate_confirm_tests()
+    group1_confirm_tests()
     
 def pass_gas(gas, index):  #Keep updating for confirmatory tests
     global tubes, currenttubeindex
@@ -336,6 +339,7 @@ def add(chemical, index = None):
     sulphate_confirm_tests()
     prelim_tests_cation()
     group0_confirm_tests()
+    group1_confirm_tests()
 
 #FUNCTIONS FOR TESTS
 #These functions should be placed in the add() function (except for flame test, there's a keyword for that)
@@ -665,6 +669,30 @@ def group0_confirm_tests():
         salt[0]['confirm'] = True
         tubes[i]['colour'] = 'Red-brown'
 
+group1_solution_flag = False
+golden_spangles_flag = 0
+def group1_confirm_tests():  #improve properly
+    global tubes, group1_solution_flag, golden_spangles_flag, golden_spangles_turn
+    if salt[0]['formula'] != 'Pb': return
+    i = currenttubeindex
+    if tubes[i]['contents'] == ['OS', 'dil_HCl', 'water'] and tubes[i]['heated'] == 2: group1_solution_flag = True
+    if group1_solution_flag and tubes[i]['contents'] == ['OS', 'dil_HCl', 'water', 'K2CrO4']:
+        print '\nYellow precipitate'
+        salt[0]['confirm'] = True
+        tubes[i]['colour'] = 'yellow'
+    if group1_solution_flag and tubes[i]['contents'] == ['OS', 'dil_HCl', 'water', 'KI']: #make it tougher
+        golden_spangles_flag = 1
+        salt[0]['confirm'] = True
+        print '\nYellow precipitate (golden spangles)'
+        tubes[i]['colour'] = 'yellow'
+    if group1_solution_flag and tubes[i]['contents'] == ['OS', 'dil_HCl', 'water', 'conc_H2SO4']:
+        print '\nWhite precipitate'
+        salt[0]['confirm'] = True
+        tubes[i]['colour'] = 'white'
+    elif group1_solution_flag and tubes[i]['contents'] == ['OS', 'dil_HCl', 'water', 'conc_H2SO4', '(CH3COO)NH4']:
+        print '\nWhite precipitate'
+        salt[0]['confirm'] = True
+        tubes[i]['colour'] = 'white'
             
 #Actual loop for taking inputs-
 print '''WELCOME TO SALT ANALYSIS EMULATOR!
@@ -705,13 +733,16 @@ barium = {'name':'Barium', 'type':'cation', 'formula':'Ba', 'valency':2, 'odour'
 strontium = {'name':'Strontium', 'type':'cation', 'formula':'Sr', 'valency':2, 'odour':None, 'flame':'Crimson red', 'colour':None}
 calcium = {'name':'Calcium', 'type':'cation', 'formula':'Ca', 'valency':2, 'odour':None, 'flame':'Brick red', 'colour':None}
 magnesium = {'name':'Magnesium', 'type':'cation', 'formula':'Mg', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
-cations = [ammonium, lead, copper, cadmium, ferrous, ferric, aluminium, cobalt, nickel, manganese, zinc, barium, strontium, calcium, magnesium]
+cations = [ammonium, lead]#*debug* , copper, cadmium, ferrous, ferric, aluminium, cobalt, nickel, manganese, zinc, barium, strontium, calcium, magnesium]
+
+numTurns = 0
 
 reset()
 
 while True:
     print
-    codestring = raw_input('Enter code line >>> ').rstrip().lstrip()
+    numTurns += 1
+    codestring = raw_input('%d) Enter code line >>> '%(numTurns)).rstrip().lstrip()
     code = codestring.split()  #retreive individual keyword
     code = [word for word in code if word.isalnum() or word == '*' or \
             (word in reagents or word in acids or word in misc or word == 'salt')]  #remove any junk, spaces etc
