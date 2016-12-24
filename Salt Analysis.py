@@ -102,7 +102,8 @@ reag_list = {'Calcium chloride': 'CaCl2', 'Acidified Potassium dichromate': 'K2C
              'Lead acetate': '(CH3COO)2Pb', 'Lime water / Ca(OH)2': 'lime', 'Hydrogen sulphide': 'H2S',
              'Acidified Potassium manganate':'KMnO4', 'Starch':'starch', 'Potassium iodide':'KI', 'Ferrous sulphate':'FeSO4',
              'Manganese peroxide':'MnO2', 'Silver nitrate':'AgNO3', 'Carbon tetrachloride':'CCl4', 'Chlorine water':'Cl_water',
-             'Ethanol':'C2H5OH', 'Ferric chloride':'FeCl3', 'Potassium chromate':'K2CrO4'}
+             'Ethanol':'C2H5OH', 'Ferric chloride':'FeCl3', 'Potassium chromate':'K2CrO4', 'Potassium ferrocyanide':'K4[Fe(CN)6]',
+             'Potassium ferricyanide':'K3[Fe(CN)6]', 'Blue litmus':'b_lit', 'Red litmus':'r_lit', 'Potassium thiocyanate':'KCNS'}
 
 acids = acids_list.values()
 acids.sort()
@@ -186,7 +187,7 @@ def guess(ion, name):
         print 'You haven\'t done a confirmatory test. Please do so before reporting an answer.'
         return
     if index == 0 and name == 'Fe':
-        valence = raw_input('Which Fe ion? The ion with valency 2 or valency 3? ')
+        valence = int(raw_input('Which Fe ion? The ion with valency 2 or valency 3? '))
         if valence == salt[0]['valency'] and name == salt[0]['formula']:
             print 'CORRECT! The cation was %s, with formula %s%d+' % (salt[index]['name'], salt[index]['formula'], valence)
             saltflag[index] = True
@@ -267,6 +268,7 @@ def heat(code):
     acetate_confirm_tests()
     phosphate_confirm_tests()
     group1_confirm_tests()
+    group2_confirm_tests()
     
 def pass_gas(gas, index):  #Keep updating for confirmatory tests
     global tubes, currenttubeindex
@@ -308,19 +310,24 @@ def add(chemical, index = None):
     
     if chemical[0] == 't': #if adding one test tube into another
         emptiedindex = int(chemical[-1]) - 1
-        tubes[index]['contents'].extend(tubes[emptiedindex]['contents'])
-        tubes[index]['colour'] = tubes[emptiedindex]['colour']
-        currenttubeindex = index
-        ch = raw_input('Pour all or only some of the contents into the test tube? Press a for all and s for only little: ')
-        if ch == 'a':
-            tubes[emptiedindex] = new_tube()
-            currenttubeindex = emptiedindex
+        if len(tubes[emptiedindex]['contents']) >= 1:
+            if len(tubes[index]['contents']) >= 1 and tubes[index]['contents'][-1] == tubes[emptiedindex]['contents'][0]:
+                tubes[index]['contents'].extend(tubes[emptiedindex]['contents'][1:])
+            else: tubes[index]['contents'].extend(tubes[emptiedindex]['contents'])
+            tubes[index]['colour'] = tubes[emptiedindex]['colour']
+            currenttubeindex = index
+            ch = raw_input('Pour all or only some of the contents into the test tube? Press a for all and s for only little: ')
+            if ch == 'a':
+                tubes[emptiedindex] = new_tube()
+                currenttubeindex = emptiedindex
+        else:
+            print 'Tube %d is empty. Cannot add an empty tube to another tube'%(emptiedindex)
     else:
         if not (chemical in reagents or chemical in acids or chemical in misc or chemical == 'salt'):
             if not chemical in ('WE', 'SE'):
                 print 'Sorry. This chemical cannot be found'
         else:
-            tubes[index]['contents'].append(chemical)
+            if not chemical == tubes[index]['contents'][-1]: tubes[index]['contents'].append(chemical)
             currenttubeindex = index
 
     #tests
@@ -340,6 +347,11 @@ def add(chemical, index = None):
     prelim_tests_cation()
     group0_confirm_tests()
     group1_confirm_tests()
+    group2_confirm_tests()
+    group3_confirm_tests()
+##    group4_confirm_tests()
+##    group5_confirm_tests()
+##    group6_confirm_tests()
 
 #FUNCTIONS FOR TESTS
 #These functions should be placed in the add() function (except for flame test, there's a keyword for that)
@@ -455,12 +467,10 @@ def sulphite_confirm_tests():
         print '\nPrecipitate dissolves. Colourless gas with smell of burning suplhur evolved.'
         tubes[i]['colour'] = None
         salt[1]['confirm'] = True
-        sulphite_boilCO2_flag = False
         tubes[i]['gas'] = 'SO2'
     elif tubes[i]['contents'][0] in ('SE', 'WE') and tubes[i]['contents'][1:] == ['CH3COOH', 'BaCl2', 'KMnO4'] and tubes[i]['colour']:
         print '\nPink colour disappears'
         salt[1]['confirm'] = True
-        sulphite_boilCO2_flag = False
         tubes[i]['colour'] = 'white'
 
 def nitrite_confirm_tests():
@@ -693,7 +703,69 @@ def group1_confirm_tests():  #improve properly
         print '\nWhite precipitate'
         salt[0]['confirm'] = True
         tubes[i]['colour'] = 'white'
-            
+
+group2_solution_flag = 0
+def group2_confirm_tests():
+    global tubes, group2_solution_flag
+    if salt[0]['formula'] not in ('Cd', 'Cu'): return
+    i = currenttubeindex
+    if group2_solution_flag == 0 and tubes[i]['contents'] == ['OS', 'dil_HCl', 'H2S', 'dil_HNO3'] and not tubes[i]['heated']:
+        group2_solution_flag = 1
+    elif group2_solution_flag == 1 and tubes[i]['contents'] == ['OS', 'dil_HCl', 'H2S', 'dil_HNO3'] and tubes[i]['heated']:
+        group2_solution_flag = 2
+    if (group2_solution_flag == 2 and tubes[i]['contents'] == ['OS', 'dil_HCl', 'H2S', 'dil_HNO3', 'NH4OH']) or \
+       (tubes[i]['contents'] == ['OS', 'NH4OH']):
+        if salt[0]['formula'] == 'Cu':
+            print '\nBlue precipitate'
+            salt[0]['confirm'] = True
+            tubes[i]['colour'] = 'blue'
+        elif salt[0]['formula'] == 'Cd':
+            print '\nWhite precipitate'
+            salt[0]['confirm'] = True
+            tubes[i]['colour'] = 'white'
+    if (group2_solution_flag == 2 and tubes[i]['contents'] == ['OS', 'dil_HCl', 'H2S', 'dil_HNO3', 'K4[Fe(CN)6]']) or \
+       (tubes[i]['contents'] == ['OS', 'K4[Fe(CN)6]']):
+        if salt[0]['formula'] == 'Cu':
+            print '\nBrown precipitate'
+            salt[0]['confirm'] = True
+            tubes[i]['colour'] = 'brown'
+        elif salt[0]['formula'] == 'Cd':
+            print '\nWhite precipitate'
+            salt[0]['confirm'] = True
+            tubes[i]['colour'] = 'white'
+
+def group3_confirm_tests():
+    global tubes
+    if salt[0]['formula'] not in ('Fe', 'Al'): return
+    i = currenttubeindex
+    #tubes[i]['contents'] == ['OS', 'NH4Cl', 'NH4OH', 'dil_HCl']
+    if salt[0]['formula'] == 'Al':
+        if tubes[i]['contents'] == ['OS', 'NH4Cl', 'NH4OH', 'dil_HCl', 'NaOH'] or tubes[i]['contents'] == ['OS', 'NaOH']:
+            print '\nGelatinous white precipiate'
+            tubes[i]['colour'] = 'white'
+            salt[0]['confirm'] = True
+        elif tubes[i]['contents'] == ['OS', 'NH4Cl', 'NH4OH', 'dil_HCl', 'b_lit', 'NH4OH'] or tubes[i]['contents'] == ['OS', 'b_lit', 'NH4OH']:
+            print '\nBlue lake formed'
+            tubes[i]['colour'] = 'blue'
+            salt[0]['confirm'] = True
+    elif salt[0]['formula'] == 'Fe':
+        if tubes[i]['contents'] == ['OS', 'NH4Cl', 'NH4OH', 'dil_HCl', 'KCNS'] or tubes[i]['contents'] == ['OS', 'dil_HCl', 'KCNS']:
+            salt[0]['confirm'] = True
+            tubes[i]['colour'] = 'blood red' if salt[0]['valency'] == 3 else 'light red'
+            print '\nSolution turns %s in colour'%(tubes[i]['colour'])
+        if salt[0]['valency'] == 3 and tubes[i]['contents'] in (['OS', 'NH4Cl', 'NH4OH', 'dil_HCl', 'K4[Fe(CN)6]'], ['OS', 'K4[Fe(CN)6]']):
+            print '\nDeep blue colour formed'
+            salt[0]['confirm'] = True
+            tubes[i]['colour'] = 'deep blue'
+        if salt[0]['valency'] == 2:
+            if tubes[i]['contents'] in (['OS', 'NH4Cl', 'NH4OH', 'dil_HCl', 'KMnO4'], ['OS', 'KMnO4']):
+                print '\nPink colouration disappears'
+                salt[0]['confirm'] = True
+            elif tubes[i]['contents'] in (['OS', 'NH4Cl', 'NH4OH', 'dil_HCl', 'K3[Fe(CN)6]'], ['OS', 'dil_HCl', 'K3[Fe(CN)6]']):
+                print '\nDeep blue colour formed'
+                salt[0]['confirm'] = True
+                tubes[i]['colour'] = 'deep blue'
+                                
 #Actual loop for taking inputs-
 print '''WELCOME TO SALT ANALYSIS EMULATOR!
 
@@ -733,7 +805,8 @@ barium = {'name':'Barium', 'type':'cation', 'formula':'Ba', 'valency':2, 'odour'
 strontium = {'name':'Strontium', 'type':'cation', 'formula':'Sr', 'valency':2, 'odour':None, 'flame':'Crimson red', 'colour':None}
 calcium = {'name':'Calcium', 'type':'cation', 'formula':'Ca', 'valency':2, 'odour':None, 'flame':'Brick red', 'colour':None}
 magnesium = {'name':'Magnesium', 'type':'cation', 'formula':'Mg', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
-cations = [ammonium, lead]#*debug* , copper, cadmium, ferrous, ferric, aluminium, cobalt, nickel, manganese, zinc, barium, strontium, calcium, magnesium]
+#cations = [ammonium,lead,copper,cadmium,ferrous,ferric,aluminium,cobalt,nickel,manganese,zinc,barium,strontium,calcium,magnesium]
+cations = [ferric]
 
 numTurns = 0
 
