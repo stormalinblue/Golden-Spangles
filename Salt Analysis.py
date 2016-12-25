@@ -103,7 +103,9 @@ reag_list = {'Calcium chloride': 'CaCl2', 'Acidified Potassium dichromate': 'K2C
              'Acidified Potassium manganate':'KMnO4', 'Starch':'starch', 'Potassium iodide':'KI', 'Ferrous sulphate':'FeSO4',
              'Manganese peroxide':'MnO2', 'Silver nitrate':'AgNO3', 'Carbon tetrachloride':'CCl4', 'Chlorine water':'Cl_water',
              'Ethanol':'C2H5OH', 'Ferric chloride':'FeCl3', 'Potassium chromate':'K2CrO4', 'Potassium ferrocyanide':'K4[Fe(CN)6]',
-             'Potassium ferricyanide':'K3[Fe(CN)6]', 'Blue litmus':'b_lit', 'Red litmus':'r_lit', 'Potassium thiocyanate':'KCNS'}
+             'Potassium ferricyanide':'K3[Fe(CN)6]', 'Blue litmus':'b_lit', 'Red litmus':'r_lit', 'Potassium thiocyanate':'KCNS',
+             'Lead peroxide':'PbO2', 'Dimethylglyoxime':'DMG', 'Acetone':'(CH3)2CO', 'Ammonium sulphate':'(NH4)2SO4',
+             'Ammonium oxalate':'(NH4)2C2O4'}
 
 acids = acids_list.values()
 acids.sort()
@@ -269,6 +271,8 @@ def heat(code):
     phosphate_confirm_tests()
     group1_confirm_tests()
     group2_confirm_tests()
+    group4_confirm_tests()
+    group5_confirm_tests()
     
 def pass_gas(gas, index):  #Keep updating for confirmatory tests
     global tubes, currenttubeindex
@@ -315,6 +319,7 @@ def add(chemical, index = None):
                 tubes[index]['contents'].extend(tubes[emptiedindex]['contents'][1:])
             else: tubes[index]['contents'].extend(tubes[emptiedindex]['contents'])
             tubes[index]['colour'] = tubes[emptiedindex]['colour']
+            tubes[index]['heated'] = tubes[emptiedindex]['heated'] 
             currenttubeindex = index
             ch = raw_input('Pour all or only some of the contents into the test tube? Press a for all and s for only little: ')
             if ch == 'a':
@@ -349,9 +354,8 @@ def add(chemical, index = None):
     group1_confirm_tests()
     group2_confirm_tests()
     group3_confirm_tests()
-##    group4_confirm_tests()
-##    group5_confirm_tests()
-##    group6_confirm_tests()
+    group4_confirm_tests()
+    group5_confirm_tests()
 
 #FUNCTIONS FOR TESTS
 #These functions should be placed in the add() function (except for flame test, there's a keyword for that)
@@ -359,7 +363,8 @@ def add(chemical, index = None):
 
 def flame_test():
     if salt[0]['flame'] != None:
-        print 'The flame is %s in colour' % (salt[0]['flame'])
+        print 'The flame is %s in colour' % (salt[0]['flame'].lower())
+        salt[0]['confirm'] = True
     else:
         print 'No characteristic flame colour'
 
@@ -661,9 +666,11 @@ def prelim_tests_cation():
         elif salt[0]['formula'] == 'Mn': colour = 'Off-white'
         elif salt[0]['formula'] == 'Zn': colour = 'Dirty white' 
     elif tubes[i]['contents'] == ['OS', 'NH4Cl', 'NH4OH', '(NH4)2CO3'] and salt[0]['formula'] in ('Ca', 'Sr', 'Ba'): colour = 'White'
-    elif tubes[i]['contents'] == ['OS', 'NH4Cl', 'NH4OH', 'Na2HPO4'] and salt[0]['formula'] == 'Mg': colour = 'White'
+    elif tubes[i]['contents'] == ['OS', 'NH4Cl', 'NH4OH', 'Na2HPO4'] and salt[0]['formula'] == 'Mg':
+        colour = 'White'
+        salt[0]['confirm'] = True
     if colour != None:
-        print '%s precipiate formed'%(colour)
+        print '%s precipitate formed'%(colour)
         tubes[i]['colour'] = colour
 
 def group0_confirm_tests():
@@ -765,6 +772,94 @@ def group3_confirm_tests():
                 print '\nDeep blue colour formed'
                 salt[0]['confirm'] = True
                 tubes[i]['colour'] = 'deep blue'
+
+group4_solution_heat_index = []  #store the indices of those tubes that still have the solution 
+def group4_confirm_tests():
+    global tubes, group4_solution_heat_index
+    if salt[0]['formula'] not in ('Zn', 'Mn', 'Co', 'Ni'): return
+    i = currenttubeindex
+    #group reagent solution (different for Zn, Mn and Co,Ni)
+    if salt[0]['formula'] in ('Zn', 'Mn'): solution = ['OS', 'NH4Cl', 'NH4OH', 'H2S', 'dil_HCl']
+    else: solution = ['OS', 'NH4Cl', 'NH4OH', 'H2S', 'conc_HCl', 'conc_HNO3', 'water']
+    
+    if i not in group4_solution_heat_index and tubes[i]['contents'] == solution and \
+       ((tubes[i]['heated']==2 and salt[0]['formula'] in ('Ni', 'Co')) or tubes[i]['heated']): #strongly heated in case of Ni or Co
+        group4_solution_heat_index.append(i)
+    
+    if (i in group4_solution_heat_index and tubes[i]['contents'] == solution + ['NaOH']) or tubes[i]['contents'] == ['OS', 'NaOH']:
+        if salt[0]['formula'] == 'Zn':
+            print '\nWhite precipitate'
+            tubes[i]['colour'] = 'white'
+            salt[0]['confirm'] = True
+            if i in group4_solution_heat_index: group4_solution_heat_index.remove(i)
+        elif salt[0]['formula'] == 'Mn':
+            print '\nWhite precipitate, slowly turning brown'
+            tubes[i]['colour'] = 'brownish white'
+            salt[0]['confirm'] = True
+            if i in group4_solution_heat_index: group4_solution_heat_index.remove(i)
+        elif salt[0]['formula'] == 'Ni':
+            print '\nGreen precipitate'
+            tubes[i]['colour'] = 'green'
+            salt[0]['confirm'] = True
+            if i in group4_solution_heat_index: group4_solution_heat_index.remove(i)
+            
+    if salt[0]['formula'] == 'Zn' and ((i in group4_solution_heat_index and tubes[i]['contents'] == solution + ['K4[Fe(CN)6]']) or \
+                                       tubes[i]['contents'] == ['OS', 'K4[Fe(CN)6]']):
+        print '\nGreenish white precipitate'
+        tubes[i]['colour'] = 'greenish white'
+        salt[0]['confirm'] = True
+        if i in group4_solution_heat_index: group4_solution_heat_index.remove(i)
+        
+    if salt[0]['formula'] == 'Mn' and tubes[i]['colour'] == 'brownish white' and tubes[i]['heated'] and \
+       (tubes[i]['contents'] == solution+['NaOH', 'conc_HNO3', 'PbO2'] or tubes[i]['contents'] == ['OS','NaOH', 'conc_HNO3', 'PbO2']):
+        print '\nPinkish purple colour'
+        tubes[i]['colour'] = 'pinkish purple'
+        salt[0]['confirm'] = True
+        if i in group4_solution_heat_index: group4_solution_heat_index.remove(i)
+
+    if salt[0]['formula'] == 'Ni' and ((i in group4_solution_heat_index and tubes[i]['contents'] == solution + ['DMG', 'NH4OH']) or \
+                                       tubes[i]['contents'] == ['OS', 'DMG', 'NH4OH']):
+        print '\nRed precipitate'
+        tubes[i]['colour'] = 'red'
+        salt[0]['confirm'] = True
+        if i in group4_solution_heat_index: group4_solution_heat_index.remove(i)
+    if ((i in group4_solution_heat_index and tubes[i]['contents'] == solution + ['NH4Cl', 'NH4OH', 'K3[Fe(CN)6]']) or \
+        tubes[i]['contents'] == ['OS', 'NH4Cl', 'NH4OH', 'K3[Fe(CN)6]']) and salt[0]['formula'] == 'Co':
+        print '\nRed-brown precipitate'
+        tubes[i]['colour'] = 'red-brown'
+        salt[0]['confirm'] = True
+        if i in group4_solution_heat_index: group4_solution_heat_index.remove(i)
+    if ((i in group4_solution_heat_index and tubes[i]['contents'] == solution + ['KCNS', '(CH3)2CO']) or \
+        tubes[i]['contents'] == ['OS', 'KCNS', '(CH3)2CO']) and salt[0]['formula'] == 'Co':
+        print '\nOrganic layer stained blue'
+        tubes[i]['colour'] = 'blue'
+        salt[0]['confirm'] = True
+        if i in group4_solution_heat_index: group4_solution_heat_index.remove(i)
+
+group5_solution_index = []
+def group5_confirm_tests():
+    global tubes, group5_solution_index
+    if salt[0]['formula'] not in ('Ba', 'Ca', 'Sr'): return
+    i = currenttubeindex
+    solution = ['OS', 'NH4Cl', 'NH4OH', '(NH4)2CO3', 'CH3COOH']
+    if i not in group5_solution_index and tubes[i]['contents'] == solution and tubes[i]['heated']:
+        group5_solution_index.append(i) 
+    if i not in group5_solution_index: return
+    if salt[0]['formula'] == 'Ba' and tubes[i]['contents'] == solution + ['K2CrO4']:
+        print '\nYellow precipitate'
+        tubes[i]['colour'] = 'yellow'
+        salt[0]['confirm'] = True
+        group5_solution_index.remove(i)
+    if salt[0]['formula'] == 'Sr' and tubes[i]['contents'] == solution + ['(NH4)2SO4']:
+        print '\nWhite precipitate'
+        tubes[i]['colour'] = 'white'
+        salt[0]['confirm'] = True
+        group5_solution_index.remove(i)
+    if salt[0]['formula'] == 'Ca' and tubes[i]['contents'] == solution + ['(NH4)2C2O4']:
+        print '\nWhite crystalline precipitate'
+        tubes[i]['colour'] = 'white'
+        salt[0]['confirm'] = True
+        group5_solution_index.remove(i)
                                 
 #Actual loop for taking inputs-
 print '''WELCOME TO SALT ANALYSIS EMULATOR!
@@ -792,7 +887,7 @@ anions = [sulphide, carbonate, nitrite, sulphite, chloride, bromide, iodide, ace
 #cations
 ammonium = {'name':'Ammonium', 'type':'cation', 'formula':'NH4', 'valency':1, 'odour':'Ammoniacal', 'flame':None, 'colour':None} 
 lead = {'name':'Lead', 'type':'cation', 'formula':'Pb', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
-copper = {'name':'Copper', 'type':'cation', 'formula':'Cu', 'valency':2, 'odour':None, 'flame':'blue-green', 'colour':'blue-green'}
+copper = {'name':'Copper', 'type':'cation', 'formula':'Cu', 'valency':2, 'odour':None, 'flame':'Green', 'colour':'blue-green'}
 cadmium = {'name':'Cadmium', 'type':'cation', 'formula':'Cd', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
 ferrous = {'name':'Ferrous', 'type':'cation', 'formula':'Fe', 'valency':2, 'odour':None, 'flame':None, 'colour':'Pale green'}
 ferric = {'name':'Ferric', 'type':'cation', 'formula':'Fe', 'valency':3, 'odour':None, 'flame':None, 'colour':'Yellow-brown'}
@@ -801,12 +896,11 @@ cobalt = {'name':'Cobalt', 'type':'cation', 'formula':'Co', 'valency':2, 'odour'
 nickel = {'name':'Nickel', 'type':'cation', 'formula':'Ni', 'valency':2, 'odour':None, 'flame':None, 'colour':'Green'}
 manganese = {'name':'Manganese', 'type':'cation', 'formula':'Mn', 'valency':2, 'odour':None, 'flame':None, 'colour':'Pale pink'}
 zinc = {'name':'Zinc', 'type':'cation', 'formula':'Zn', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
-barium = {'name':'Barium', 'type':'cation', 'formula':'Ba', 'valency':2, 'odour':None, 'flame':'Apple-green', 'colour':None}
-strontium = {'name':'Strontium', 'type':'cation', 'formula':'Sr', 'valency':2, 'odour':None, 'flame':'Crimson red', 'colour':None}
-calcium = {'name':'Calcium', 'type':'cation', 'formula':'Ca', 'valency':2, 'odour':None, 'flame':'Brick red', 'colour':None}
+barium = {'name':'Barium', 'type':'cation', 'formula':'Ba', 'valency':2, 'odour':None, 'flame':'Green', 'colour':None}
+strontium = {'name':'Strontium', 'type':'cation', 'formula':'Sr', 'valency':2, 'odour':None, 'flame':'Red', 'colour':None}
+calcium = {'name':'Calcium', 'type':'cation', 'formula':'Ca', 'valency':2, 'odour':None, 'flame':'Red', 'colour':None}
 magnesium = {'name':'Magnesium', 'type':'cation', 'formula':'Mg', 'valency':2, 'odour':None, 'flame':None, 'colour':None}
-#cations = [ammonium,lead,copper,cadmium,ferrous,ferric,aluminium,cobalt,nickel,manganese,zinc,barium,strontium,calcium,magnesium]
-cations = [ferric]
+cations = [ammonium,lead,copper,cadmium,ferrous,ferric,aluminium,cobalt,nickel,manganese,zinc,barium,strontium,calcium,magnesium]
 
 numTurns = 0
 
