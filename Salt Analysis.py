@@ -310,7 +310,7 @@ def introduce(chemical, index = None):
 
 def add(chemical, index = None):
     global currenttubeindex, tubes
-    if index == None: index = currenttubeindex
+    if index == None: index = currenttubeindex 
     
     if chemical[0] == 't': #if adding one test tube into another
         emptiedindex = int(chemical[-1]) - 1
@@ -332,7 +332,8 @@ def add(chemical, index = None):
             if not chemical in ('WE', 'SE'):
                 print 'Sorry. This chemical cannot be found'
         else:
-            if not chemical == tubes[index]['contents'][-1]: tubes[index]['contents'].append(chemical)
+            if len(tubes[index]['contents']) == 0 or not chemical == tubes[index]['contents'][-1]:
+                tubes[index]['contents'].append(chemical)
             currenttubeindex = index
 
     #tests
