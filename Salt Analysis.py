@@ -434,7 +434,6 @@ def prelim_tests_anion():
     i = currenttubeindex
 
     if sorted(tubes[i]['contents']) == ['dil_HCl', 'salt']: # dilute acid test
-        print
         if salt[ANION]['formula'] == 'CO3':
             print 'Colourless, odourless gas evolved.'
             tubes[i]['gas'] = 'CO2'
@@ -442,8 +441,7 @@ def prelim_tests_anion():
             messages_and_gas = {
                 'S': ('Gas with rotten egg smell evolved', 'H2S'),
                 'NO2': ('Slight brown fumes evolved', 'NO2'),
-                'SO3': ('Gas with burning sulphur smell evolved', 'SO2')
-            }
+                'SO3': ('Gas with burning sulphur smell evolved', 'SO2')}
             if salt[ANION]['formula'] in messages_and_gas:
                 output, tubes[i]['gas'] = messages_and_gas(salt[ANION]['formula'])
                 print
