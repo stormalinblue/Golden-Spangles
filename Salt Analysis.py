@@ -80,9 +80,9 @@ def printtubes():
     print
     for i in range(len(tubes)):
         if not (tubes[i]['contents'] == []):
-            print 'Test Tube {test_tube_number} has {contents}.'.format(
+            output = 'Test Tube {test_tube_number} has {contents}.'.format(
                 test_tube_number = i + 1,
-                contents = ', '.join(tubes[i]['contents'])),
+                contents = ', '.join(tubes[i]['contents']))
             if tubes[i]['heated']:
                 output += ' It is %s hot.' % (
                     'slightly' if tubes[i]['heated'] == 1 else 'very')
@@ -162,7 +162,7 @@ def saltFormula():  # write code to return the formula as string
     else:  # len(salt 1 formula) <= 2
         if salt[ANION]['valency'] == 1:
             formula = '%s%s%d' % (salt[CATION]['formula'], salt[ANION]['formula'], salt[CATION]['valency'])
-        else:s
+        else:
             formula = '%s%d%s%d' % (salt[CATION]['formula'], salt[ANION]['valency'], salt[ANION]['formula'], salt[CATION]['valency'])
     return formula, name
 
@@ -456,9 +456,9 @@ def prelim_tests_anion():
             tubes[i]['gas'] = 'HCl'
         elif tubes[i]['heated']:  # only Cl reaction takes place without heat
             message_and_gas = {
-                'Br': ('Reddish brown gas evolved', 'Br2')
-                'I': ('Violet vapours evolved', 'I2')
-                'CH3COO': ('Gas with the smell of vinegar evolved', 'CH3COOH')
+                'Br': ('Reddish brown gas evolved', 'Br2'),
+                'I': ('Violet vapours evolved', 'I2'),
+                'CH3COO': ('Gas with the smell of vinegar evolved', 'CH3COOH'),
                 'NO3': ('Slight brown fumes evolved', 'NO')
             }
             if salt[ANION]['formula'] in message_and_gas:
@@ -1128,7 +1128,7 @@ while True:
         guess(code[1], code[3])
     elif code[0] == 'discard' and code[1][0] == 't' and len(code) == 2:
         discard(int(code[1][1]) - 1)
-    elif code[:2] == ['pass', 'in'] and code[-1][0] == 't'len(code) == 3:
+    elif code[:2] == ['pass', 'in'] and code[-1][0] == 't' and len(code) == 3:
         gas = tubes[currenttubeindex]['gas']
         if gas != None:
             pass_gas(gas, int(code[-1][-1]) - 1)
