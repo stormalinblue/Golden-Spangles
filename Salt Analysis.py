@@ -443,7 +443,7 @@ def prelim_tests_anion():
                 'NO2': ('Slight brown fumes evolved', 'NO2'),
                 'SO3': ('Gas with burning sulphur smell evolved', 'SO2')}
             if salt[ANION]['formula'] in messages_and_gas:
-                output, tubes[i]['gas'] = messages_and_gas[salt[ANION]['formula'])
+                output, tubes[i]['gas'] = messages_and_gas[salt[ANION]['formula']]
                 print
                 print output
             else:
